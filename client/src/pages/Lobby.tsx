@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { useGame } from '../context/GameContext';
+import ShareAccessPanel from '../components/ShareAccessPanel';
 import '../styles/global.css';
 
 function formatCatalogName(name: string): string {
@@ -12,11 +12,9 @@ function formatCatalogName(name: string): string {
 
 export default function Lobby() {
   const { gameState, startGame, leaveGame, availableVariants } = useGame();
-  const [copied, setCopied] = useState(false);
 
   if (!gameState) return null;
 
-  const shareUrl = `${window.location.origin}/join/${gameState.code}`;
   const isHost = gameState.players.find(p => p.id === gameState.myId)?.isHost || false;
   const playerCount = gameState.players.length;
   const canStart = isHost && playerCount >= 3;
@@ -29,33 +27,12 @@ export default function Lobby() {
     };
   });
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback
-      const input = document.createElement('input');
-      input.value = shareUrl;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand('copy');
-      document.body.removeChild(input);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   return (
     <div className="lobby-page">
       <div className="lobby-container">
         <h1 className="lobby-title">Lobby</h1>
 
-        <div className="lobby-code-section">
-          <p className="lobby-code-label">Spielcode:</p>
-          <div className="lobby-code">{gameState.code}</div>
-        </div>
+        <ShareAccessPanel code={gameState.code} className="lobby-share-panel" />
 
         <div className="lobby-variant-section">
           <p className="lobby-variant-label">Kartenset:</p>
@@ -71,21 +48,6 @@ export default function Lobby() {
                 ))}
               </div>
             )}
-          </div>
-        </div>
-
-        <div className="share-section">
-          <p className="share-label">Lade Freunde ein:</p>
-          <div className="share-link-row">
-            <input
-              type="text"
-              value={shareUrl}
-              readOnly
-              className="input share-input"
-            />
-            <button className="btn btn-secondary" onClick={copyLink}>
-              {copied ? '✓ Kopiert!' : 'Kopieren'}
-            </button>
           </div>
         </div>
 

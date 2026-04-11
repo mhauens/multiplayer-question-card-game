@@ -642,6 +642,63 @@ body[data-theme="peppa-wutz"] {
     color: var(--yellow);
 }
 
+.share-card {
+    padding: 1rem 1.125rem;
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.share-card-row + .share-card-row {
+    margin-top: 1rem;
+}
+
+.share-card-label {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    margin-bottom: 0.5rem;
+}
+
+.share-card-control {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.share-code-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3.5rem;
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--gray-700);
+    border-radius: var(--radius-sm);
+    background: var(--gray-900);
+    color: var(--yellow);
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 0.3em;
+}
+
+.share-input {
+    font-size: 0.8125rem;
+    flex: 1;
+}
+
+.share-copy-button {
+    width: fit-content;
+    max-width: 100%;
+}
+
+.lobby-share-panel {
+    margin-bottom: 1.5rem;
+}
+
+.lobby-share-panel .share-code-display {
+    min-height: 5rem;
+    font-size: 3rem;
+    text-shadow: 0 0 20px rgba(245, 197, 24, 0.3);
+}
+
 .lobby-code-section {
     text-align: center;
     margin-bottom: 1.5rem;
@@ -940,6 +997,7 @@ body[data-theme="peppa-wutz"] .input::placeholder {
 body[data-theme="peppa-wutz"] .variant-option,
 body[data-theme="peppa-wutz"] .lobby-variant-card,
 body[data-theme="peppa-wutz"] .player-list,
+body[data-theme="peppa-wutz"] .share-card,
 body[data-theme="peppa-wutz"] .rules-section {
     background: var(--peppa-panel);
     border: 1px solid var(--peppa-panel-border);
@@ -1051,6 +1109,7 @@ body[data-theme="peppa-wutz"] .trophy-selector label,
 body[data-theme="peppa-wutz"] .variant-selector label,
 body[data-theme="peppa-wutz"] .lobby-code-label,
 body[data-theme="peppa-wutz"] .lobby-variant-label,
+body[data-theme="peppa-wutz"] .share-card-label,
 body[data-theme="peppa-wutz"] .share-label,
 body[data-theme="peppa-wutz"] .variant-extensions-label,
 body[data-theme="peppa-wutz"] .variant-extension-hint,
@@ -1061,9 +1120,16 @@ body[data-theme="peppa-wutz"] .home-connecting {
 
 body[data-theme="peppa-wutz"] .variant-option-counts,
 body[data-theme="peppa-wutz"] .lobby-code,
+body[data-theme="peppa-wutz"] .share-code-display,
 body[data-theme="peppa-wutz"] .lobby-variant-card strong,
 body[data-theme="peppa-wutz"] .rules-modal-eyebrow {
     color: var(--yellow-light);
+}
+
+body[data-theme="peppa-wutz"] .share-code-display {
+    background: rgba(12, 58, 92, 0.84);
+    border-color: rgba(255, 255, 255, 0.28);
+    backdrop-filter: blur(10px);
 }
 
 body[data-theme="peppa-wutz"] .player-status.offline {
@@ -1087,6 +1153,11 @@ body[data-theme="peppa-wutz"] .player-status.offline {
     }
 
     .lobby-code {
+        font-size: 2.5rem;
+        letter-spacing: 0.2em;
+    }
+
+    .lobby-share-panel .share-code-display {
         font-size: 2.5rem;
         letter-spacing: 0.2em;
     }

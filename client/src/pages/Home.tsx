@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { CardCatalogOption, GamePreview } from '../types';
 import { resolveServerUrl } from '../serverUrl';
@@ -19,10 +19,12 @@ const fallbackVariants: CardCatalogOption[] = [
 
 export default function Home() {
   const { code } = useParams<{ code?: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const { createGame, joinGame, isConnected, availableVariants } = useGame();
+  const isJoinRoute = location.pathname === '/join';
 
-  const [mode, setMode] = useState<'menu' | 'create' | 'join'>(code ? 'join' : 'menu');
+  const [mode, setMode] = useState<'menu' | 'create' | 'join'>(code || isJoinRoute ? 'join' : 'menu');
   const [playerName, setPlayerName] = useState('');
   const [gameCode, setGameCode] = useState(code?.toUpperCase() || '');
   const [maxTrophies, setMaxTrophies] = useState(5);
@@ -37,8 +39,14 @@ export default function Home() {
     if (code) {
       setGameCode(code.toUpperCase());
       setMode('join');
+      window.history.replaceState(window.history.state, '', '/join');
+      return;
     }
-  }, [code]);
+
+    if (isJoinRoute) {
+      setMode('join');
+    }
+  }, [code, isJoinRoute]);
 
   useEffect(() => {
     if (variantOptions.some(option => option.id === selectedVariant)) {
@@ -132,7 +140,7 @@ export default function Home() {
     const resultCode = await createGame(playerName.trim(), maxTrophies, selectedVariant, selectedExtensions);
     setLoading(false);
     if (resultCode) {
-      navigate(`/lobby/${resultCode}`);
+      navigate('/lobby');
     }
   };
 
@@ -142,7 +150,7 @@ export default function Home() {
     const resultCode = await joinGame(gameCode.trim(), playerName.trim());
     setLoading(false);
     if (resultCode) {
-      navigate(`/lobby/${resultCode}`);
+      navigate('/lobby');
     }
   };
 
@@ -281,12 +289,14 @@ export default function Home() {
               autoFocus
             />
             <input
-              type="text"
+              type="password"
               placeholder="Spielcode (z.B. ABC123)"
               value={gameCode}
               onChange={e => setGameCode(e.target.value.toUpperCase())}
               maxLength={6}
               className="input input-code"
+              autoComplete="off"
+              spellCheck={false}
             />
             <button
               className="btn btn-primary btn-large"

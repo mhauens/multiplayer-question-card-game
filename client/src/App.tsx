@@ -35,19 +35,22 @@ function GameRouter() {
         <Route path="/" element={
           gameState ? (
             gameState.phase === GamePhase.LOBBY
-              ? <Navigate to={`/lobby/${gameState.code}`} replace />
-              : <Navigate to={`/game/${gameState.code}`} replace />
+              ? <Navigate to="/lobby" replace />
+              : <Navigate to="/game" replace />
           ) : (
             <Home />
           )
         } />
+        <Route path="/join" element={<Home />} />
         <Route path="/join/:code" element={<Home />} />
-        <Route path="/lobby/:code" element={
+        <Route path="/lobby" element={
           gameState && gameState.phase === GamePhase.LOBBY ? <Lobby /> : <Navigate to="/" replace />
         } />
-        <Route path="/game/:code" element={
+        <Route path="/lobby/:code" element={<Navigate to="/lobby" replace />} />
+        <Route path="/game" element={
           gameState && gameState.phase !== GamePhase.LOBBY ? <Game /> : <Navigate to="/" replace />
         } />
+        <Route path="/game/:code" element={<Navigate to="/game" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
