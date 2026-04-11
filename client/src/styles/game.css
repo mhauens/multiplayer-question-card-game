@@ -1,0 +1,226 @@
+/* ============== GAME PAGE LAYOUT ============== */
+
+.game-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--page-background);
+    transition: background 0.35s ease;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 1.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.game-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.game-round {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--yellow);
+    background: rgba(245, 197, 24, 0.15);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.game-phase {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--gray-300);
+}
+
+.boss-label {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.boss-label strong {
+    color: var(--yellow);
+}
+
+.game-layout {
+    flex: 1;
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    overflow: hidden;
+}
+
+.game-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    gap: 1.5rem;
+}
+
+.game-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.game-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.game-header-link {
+    color: var(--yellow);
+    font-weight: 700;
+}
+
+.game-header-link:hover:not(:disabled) {
+    color: var(--white);
+}
+
+.question-section {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0;
+}
+
+.next-round-section {
+    padding: 1rem;
+    text-align: center;
+}
+
+.round-waiting-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 34rem;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius);
+    border: 2px solid rgba(245, 197, 24, 0.3);
+    background: rgba(245, 197, 24, 0.12);
+    color: var(--yellow);
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+.game-leave {
+    margin-top: auto;
+}
+
+body[data-theme="peppa-wutz"] .game-header {
+    background: rgba(12, 58, 92, 0.88);
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+body[data-theme="peppa-wutz"] .game-round {
+    background: #ffe1ec;
+    color: #6f173f;
+}
+
+body[data-theme="peppa-wutz"] .game-header-link,
+body[data-theme="peppa-wutz"] .boss-label strong {
+    color: var(--yellow-light);
+}
+
+body[data-theme="peppa-wutz"] .round-waiting-info {
+    background: #ffe1ec;
+    border-color: #d26a95;
+    color: #6f173f;
+}
+
+/* ============== RESPONSIVE ============== */
+
+@media (max-width: 768px) {
+    .game-layout {
+        flex-direction: column;
+        padding: 1rem;
+        overflow: visible;
+    }
+
+    .game-sidebar {
+        width: 100%;
+        order: -1;
+    }
+
+    .game-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .game-header-left {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .card {
+        width: min(5.1cm, 70vw);
+        min-height: min(7.65cm, 105vw);
+        padding: 1rem;
+    }
+
+    .question-card .card-text {
+        font-size: 1.05rem;
+    }
+
+    .answer-card .card-text {
+        font-size: 0.95rem;
+    }
+
+    .hand-cards {
+        gap: 0.5rem;
+    }
+
+    .home-title {
+        font-size: 1.5rem;
+    }
+
+    .lobby-code {
+        font-size: 2.25rem;
+    }
+
+    .share-link-row {
+        flex-direction: column;
+    }
+
+    .submissions-grid {
+        gap: 0.5rem;
+    }
+
+    .submission-card {
+        width: min(5.1cm, 70vw);
+        min-height: min(7.65cm, 105vw);
+    }
+
+    .round-waiting-info {
+        width: 100%;
+        max-width: none;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .card {
+        width: min(4.5cm, 78vw);
+        min-height: min(6.75cm, 117vw);
+        padding: 0.875rem;
+    }
+
+    .hand-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

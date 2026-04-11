@@ -1,0 +1,12 @@
+{
+  "name": "beispiel-erweiterung",
+  "title": "Beispiel-Erweiterung",
+  "description": "Zusaetzliche Karten fuer das klassische Basis-Set.",
+  "variants": ["base"],
+  "answers": [
+    "Ein selbstgestrickter Pullover.",
+    "Knoblauchbrot um Mitternacht.",
+    "Die Schneekanone.",
+    "Gluehwein-Flatrate."
+  ]
+}

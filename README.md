@@ -1,0 +1,267 @@
+# Kampf gegen das Spiessertum
+
+Web-Umsetzung des Partyspiels als pnpm-Workspace mit React/Vite im Client und Express/Socket.IO im Server.
+
+## Ziel des Projekts
+
+Das Projekt bildet eine Online-Variante von "Kampf gegen das Spiessertum" ab.
+
+Spieler koennen:
+
+- eine Lobby erstellen oder per Code/Link beitreten
+- in Echtzeit ueber Socket.IO synchron spielen
+- Karten einreichen, Karten tauschen und Gewinner waehlen
+- eine Sitzung nach kurzem Verbindungsverlust wieder aufnehmen
+
+## Tech-Stack
+
+- Root: pnpm Workspace
+- Client: React 19, React Router 7, Vite 8, TypeScript 6
+- Server: Express 5, Socket.IO 4, TypeScript 6, tsx fuer lokale Entwicklung
+
+## Projektstruktur
+
+```text
+.
+|- client/
+|  |- src/
+|  |  |- components/    UI-Bausteine wie Karten, Scoreboard, Regeln-Modal
+|  |  |- context/       globaler Spielzustand im Browser
+|  |  |- hooks/         Socket-Kommunikation und Reconnect-Verhalten
+|  |  |- pages/         Home, Lobby, Game
+|  |  |- styles/        globale Styles, Karten- und Game-Layout
+|  |  |- App.tsx        Routing der App
+|  |  |- theme.ts       Zuordnung von Varianten zu Client-Themes
+|  |  `- main.tsx       Einstiegspunkt des Frontends
+|  |- vite.config.ts    Dev-Server auf Port 5173, Proxy fuer /socket.io
+|  `- package.json
+|- server/
+|  |- data/
+|  |  |- base-questions.json
+|  |  |- base-answers.json
+|  |  |- extensions/    optionale Kartenerweiterungen als JSON
+|  |  `- variants/      alternative komplette Spielvarianten als JSON
+|  |- src/
+|  |  |- game/          GameManager, GameState, CardDeck
+|  |  |- socket/        Socket-Handler fuer alle Spielaktionen
+|  |  |- index.ts       Express-/Socket.IO-Server
+|  |  `- types.ts       gemeinsame Server-Typen
+|  `- package.json
+|- package.json         Root-Skripte fuer die gesamte App
+`- pnpm-workspace.yaml
+```
+
+## Voraussetzungen
+
+- Node.js 22 oder neuer empfohlen
+- pnpm 10 oder neuer empfohlen
+
+## Installation
+
+```bash
+pnpm install
+```
+
+## Lokale Entwicklung
+
+Alles zusammen starten:
+
+```bash
+pnpm dev
+```
+
+Einzelne Teile starten:
+
+```bash
+pnpm dev:client
+pnpm dev:server
+```
+
+Build fuer beide Pakete:
+
+```bash
+pnpm build
+```
+
+Produktionsstart des Servers:
+
+```bash
+pnpm start
+```
+
+## Laufzeit und Ports
+
+- Client lokal: http://localhost:5173
+- Server lokal: http://localhost:3001
+- Health-Check: http://localhost:3001/api/health
+- Verfuegbare Varianten: http://localhost:3001/api/variants
+- Verfuegbare Erweiterungen: http://localhost:3001/api/extensions
+
+Hinweis:
+
+- Die Hosting-UI nutzt primaer das Socket-Event `get-variants`; jede Variante liefert ihre passenden Erweiterungen bereits mit.
+- Der Endpoint `/api/extensions` ist vor allem fuer Debugging oder Katalog-Inspektion nuetzlich.
+
+Wichtige Server-Umgebungsvariablen:
+
+- `PORT` steuert den Server-Port, Standard ist `3001`
+- `CLIENT_URL` steuert den erlaubten Client-Ursprung, Standard ist `http://localhost:5173`
+
+## Wie das Spiel technisch funktioniert
+
+### Client
+
+- `GameContext` kapselt den Spielzustand fuer die UI.
+- `GameContext` laedt den Variantenkatalog ueber `get-variants`, spiegelt `activeVariant` und `activeExtensions` aus dem Serverzustand und setzt das passende Theme.
+- `useSocket` verwaltet die Socket.IO-Verbindung, inklusive Reconnect und Session-Wiederherstellung.
+- `Home.tsx` enthaelt die Host-Auswahl fuer Variante und variantenspezifische Erweiterungen.
+- `theme.ts` ordnet Varianten Client-Themes zu; aktuell hat `peppa-wutz` ein eigenes Theme, `base` ist der Fallback.
+- Routing in `App.tsx` unterscheidet zwischen Startseite, Lobby und laufendem Spiel.
+
+### Server
+
+- `GameManager` verwaltet mehrere parallele Spiele.
+- `GameState` enthaelt den eigentlichen Regelablauf einer Partie.
+- `CardDeck` baut das Basis-Set synthetisch aus den Basisdateien auf, laedt weitere Varianten und Erweiterungen aus ihren eigenen Set-Unterordnern, ordnet Erweiterungen Varianten zu und filtert ungueltige Erweiterungen beim Spielstart heraus.
+- `socket/handlers.ts` validiert alle Spielaktionen und broadcastet den aktuellen Zustand an alle Spieler.
+
+## Wichtige Spielregeln in der Online-Variante
+
+- Der Host erstellt die Lobby und startet das Spiel.
+- Start ist erst ab 3 Spielern moeglich.
+- Jede Person startet mit 8 Antwortkarten.
+- Nur Nicht-Bosse reichen Antworten ein.
+- Wer Karten tauscht, setzt die aktuelle Runde aus.
+- Nur der aktuelle Rundenboss deckt Antworten auf und waehlt den Gewinner.
+- Nur der aktuelle Rundenboss startet die naechste Runde.
+- Der Boss rotiert zur naechsten verbundenen Person.
+
+## Kartendaten
+
+Aktueller Stand der Basisdaten:
+
+- Basisfragen: 60
+- Basisantworten: 120
+- Variante `peppa-wutz`: 30 Fragen, 124 Antworten
+
+Die Basisvariante `base` wird aus `server/data/base-questions.json` und `server/data/base-answers.json` aufgebaut.
+
+- Alternative komplette Spielvarianten liegen unter `server/data/variants/<variant-id>/questions.json` und `server/data/variants/<variant-id>/answers.json`.
+- Optionale Erweiterungen liegen unter `server/data/extensions/<extension-id>/questions.json` und `server/data/extensions/<extension-id>/answers.json` und koennen einer oder mehreren Varianten zugeordnet werden.
+
+Beispielstruktur einer Erweiterung:
+
+```json
+{
+  "name": "beispiel-erweiterung",
+  "title": "Beispiel-Erweiterung",
+  "description": "Zusaetzliche Karten fuer das Basis-Set.",
+  "variants": ["base"],
+  "questions": [
+    { "text": "Das schlimmste Weihnachtsgeschenk aller Zeiten: ________.", "blanks": 1 }
+  ]
+}
+```
+
+```json
+{
+  "name": "beispiel-erweiterung",
+  "title": "Beispiel-Erweiterung",
+  "description": "Zusaetzliche Karten fuer das Basis-Set.",
+  "variants": ["base"],
+  "answers": [
+    "Ein selbstgestrickter Pullover."
+  ]
+}
+```
+
+Beispielstruktur einer Spielvariante:
+
+```json
+{
+  "name": "peppa-wutz",
+  "title": "Peppa Wutz",
+  "description": "Alltag, Matschepfuetzen und Dorfchaos fuer Erwachsene.",
+  "questions": [
+    { "text": "Papa Wutz versucht ein Meeting zu retten mit ________.", "blanks": 1 }
+  ]
+}
+```
+
+```json
+{
+  "name": "peppa-wutz",
+  "title": "Peppa Wutz",
+  "description": "Alltag, Matschepfuetzen und Dorfchaos fuer Erwachsene.",
+  "answers": [
+    "einem passiv-aggressiven Elternbrief"
+  ]
+}
+```
+
+Wichtig:
+
+- `name` wird als Erweiterungskennung verwendet
+- `variants` ordnet eine Erweiterung einer oder mehreren Varianten zu; ohne Eintrag wird `base` verwendet
+- Varianten koennen optional `title` und `description` fuer die UI mitgeben
+- Erweiterungen koennen optional ebenfalls `title` und `description` fuer die UI mitgeben
+- Jede Variante und Erweiterung lebt in einem eigenen Unterordner mit genau zwei Dateien: `questions.json` und `answers.json`
+- `questions.json` enthaelt nur Fragedaten, `answers.json` nur Antwortdaten
+- `questions` enthaelt Objekte mit `text` und `blanks`
+- `answers` enthaelt einfache String-Eintraege
+
+Katalogverhalten in der App:
+
+- `get-variants` liefert Varianten inklusive ihrer passenden Erweiterungen fuer die Hosting-UI.
+- Beim Spielstart akzeptiert der Server nur Erweiterungen, die zur gewaehlten Variante gehoeren.
+- Der resultierende Spielzustand spiegelt `activeVariant` und `activeExtensions` an Lobby und Spielclient zurueck.
+- Client-Themes werden aktuell nicht aus JSON geladen, sondern in `client/src/theme.ts` anhand der Varianten-ID zugeordnet.
+
+## Typische Entwickleraufgaben
+
+### UI aendern
+
+- Seiten liegen unter `client/src/pages/`
+- wiederverwendbare Komponenten unter `client/src/components/`
+- Styling vor allem in `client/src/styles/global.css`, `cards.css` und `game.css`
+- Varianten-Themes werden in `client/src/theme.ts` aktiviert und ueber CSS-Overrides in den Stylesheets umgesetzt
+
+### Spielregeln anpassen
+
+- Logik in `server/src/game/GameState.ts`
+- Zugriffsrechte und Events in `server/src/socket/handlers.ts`
+
+### Neue Karten hinzufuegen
+
+- Basissets in `server/data/base-questions.json` und `server/data/base-answers.json`
+- komplette Varianten in `server/data/variants/<variant-id>/questions.json` und `server/data/variants/<variant-id>/answers.json`
+- optionale Erweiterungen in `server/data/extensions/<extension-id>/questions.json` und `server/data/extensions/<extension-id>/answers.json`
+- bei einer neuen Variante mit eigenem Look auch `client/src/theme.ts` und die zugehoerigen CSS-Overrides erweitern
+
+## Validierung nach Aenderungen
+
+Empfohlener Mindestcheck:
+
+```bash
+pnpm build
+```
+
+Wenn du an Echtzeit- oder Spiellogik arbeitest, zusaetzlich:
+
+1. `pnpm dev` starten
+2. mit zwei Browser-Sessions eine Lobby erstellen und beitreten
+3. Start, Antworten, Reveal, Gewinnerwahl und naechste Runde einmal durchspielen
+
+Wenn du Varianten, Erweiterungen oder Themes aenderst, pruefe zusaetzlich:
+
+1. auf der Startseite zwischen allen Varianten wechseln
+2. ob nur passende Erweiterungen angezeigt und aktivierbar sind
+3. ob Lobby und Spiel das erwartete Theme der gewaehlten Variante uebernehmen
+
+## Hinweise
+
+- Das Repo ist auf `pnpm` ausgerichtet.
+- Der Client nutzt fuer die Sitzung `sessionStorage`, damit parallele Tabs sich nicht gegenseitig ueberschreiben.
+- Socket-Events sind ACK-basiert, der Server antwortet also auf Aktionen direkt mit Erfolg oder Fehlermeldung.
+- React StrictMode kann lokal kurz doppelte Mount-/Unmount-Zyklen verursachen; der Socket-Client ist deshalb auf Wiederverwendung mit Grace-Period ausgelegt.
+- Es gibt aktuell keine automatisierten Tests; Build und manueller Spielfluss sind die wichtigsten Checks.
