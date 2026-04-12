@@ -56,11 +56,20 @@ Spieler koennen:
 - Node.js 22 oder neuer empfohlen
 - pnpm 10 oder neuer empfohlen
 
+Falls `pnpm` lokal noch nicht verfuegbar ist, kann es ueber Corepack aktiviert werden:
+
+```bash
+corepack enable
+corepack prepare pnpm@10 --activate
+```
+
 ## Installation
 
 ```bash
 pnpm install
 ```
+
+Danach stehen alle Workspace-Skripte im Repo-Root zur Verfuegung.
 
 ## Lokale Entwicklung
 
@@ -70,6 +79,11 @@ Alles zusammen starten:
 pnpm dev
 ```
 
+Das startet:
+
+- den Vite-Client auf `http://localhost:5173`
+- den Express-/Socket.IO-Server auf `http://localhost:3001`
+
 Einzelne Teile starten:
 
 ```bash
@@ -77,17 +91,36 @@ pnpm dev:client
 pnpm dev:server
 ```
 
-Build fuer beide Pakete:
+Nuetzliche weitere Root-Befehle:
 
 ```bash
+pnpm lint
+pnpm test
 pnpm build
+```
+
+Dabei gilt:
+
+- `pnpm lint` prueft `client/src`, `server/src` und `server/test`
+- `pnpm test` fuehrt die Vitest-Suites von Client und Server aus
+- `pnpm build` baut Client und Server nacheinander
+
+Direkte Paketbefehle sind ebenfalls moeglich:
+
+```bash
+pnpm --filter client test:watch
+pnpm --filter server test:watch
+pnpm --filter client preview
 ```
 
 Produktionsstart des Servers:
 
 ```bash
+pnpm build
 pnpm start
 ```
+
+Wichtig: `pnpm start` erwartet den zuvor gebauten Server unter `server/dist`.
 
 ## Laufzeit und Ports
 
@@ -243,6 +276,8 @@ Katalogverhalten in der App:
 Empfohlener Mindestcheck:
 
 ```bash
+pnpm lint
+pnpm test
 pnpm build
 ```
 
@@ -264,4 +299,4 @@ Wenn du Varianten, Erweiterungen oder Themes aenderst, pruefe zusaetzlich:
 - Der Client nutzt fuer die Sitzung `sessionStorage`, damit parallele Tabs sich nicht gegenseitig ueberschreiben.
 - Socket-Events sind ACK-basiert, der Server antwortet also auf Aktionen direkt mit Erfolg oder Fehlermeldung.
 - React StrictMode kann lokal kurz doppelte Mount-/Unmount-Zyklen verursachen; der Socket-Client ist deshalb auf Wiederverwendung mit Grace-Period ausgelegt.
-- Es gibt aktuell keine automatisierten Tests; Build und manueller Spielfluss sind die wichtigsten Checks.
+- Automatisierte Tests laufen mit Vitest in Client und Server; fuer Gameplay-Aenderungen bleibt der manuelle Spielfluss mit zwei Sessions trotzdem wichtig.

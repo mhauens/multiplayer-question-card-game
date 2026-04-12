@@ -39,6 +39,8 @@ Use this file as the project-wide default guidance for any coding agent or LLM. 
 
 For most code changes, at minimum run:
 
+- `pnpm lint`
+- `pnpm test`
 - `pnpm build`
 
 For gameplay, socket, lobby, reconnect, or card-flow changes, also do a manual smoke test with two browser sessions:
@@ -70,6 +72,7 @@ Project-specific skills are kept under this folder:
 
 Current skills:
 
+- `code-review`
 - `project-architecture`
 - `game-rules-and-content`
 
