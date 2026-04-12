@@ -4,3 +4,5 @@ dist/
 *.db
 .netlify/
 .DS_Store
+.vscode/
+.codex/
