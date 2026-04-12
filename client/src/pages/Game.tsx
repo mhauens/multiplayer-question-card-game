@@ -82,6 +82,7 @@ export default function Game() {
 
   const isRoundEnd = gameState.phase === GamePhase.ROUND_END;
   const canStartNextRound = isRoundEnd && isBoss;
+  const scoreboardRoundWinnerId = isRoundEnd ? gameState.winnerId : gameState.lastRoundWinnerId;
   const activeDeadline = gameState.reconnectWindow?.deadline || gameState.phaseDeadline;
   const remainingSeconds = activeDeadline
     ? Math.max(0, Math.ceil((activeDeadline - now) / 1000))
@@ -204,7 +205,7 @@ export default function Game() {
             players={gameState.players}
             myId={gameState.myId}
             bossId={gameState.bossId}
-            roundWinnerId={isRoundEnd ? gameState.winnerId : null}
+            roundWinnerId={scoreboardRoundWinnerId}
             maxTrophies={gameState.maxTrophies}
             phase={gameState.phase}
           />
