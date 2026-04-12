@@ -253,6 +253,14 @@
     animation: flipIn 0.3s ease-out;
 }
 
+.submission-card.is-round-winner {
+    box-shadow:
+        0 0 0 4px rgba(245, 197, 24, 0.95),
+        0 0 0 10px rgba(245, 197, 24, 0.16),
+        var(--shadow-lg);
+    transform: translateY(-4px);
+}
+
 @keyframes flipIn {
     from {
         transform: rotateY(90deg);
@@ -276,6 +284,26 @@
     color: var(--gray-500);
     margin-top: 0.75rem;
     font-weight: 600;
+}
+
+.submission-player-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.submission-winner-badge {
+    margin-top: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(245, 197, 24, 0.16);
+    color: var(--yellow-dark);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
 }
 
 .pick-hint {
@@ -361,6 +389,32 @@
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+
+.scoreboard-status {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.125rem 0.45rem;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.scoreboard-status.is-ready {
+    background: rgba(34, 197, 94, 0.16);
+    color: var(--green);
+}
+
+.scoreboard-status.is-pending {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--gray-500);
+}
+
+.scoreboard-status.is-swapped {
+    background: rgba(59, 130, 246, 0.16);
+    color: var(--blue);
 }
 
 .scoreboard-trophies {
@@ -465,6 +519,18 @@
     font-size: 0.875rem;
 }
 
+.game-over-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.game-over-waiting {
+    color: var(--gray-500);
+    font-size: 0.9375rem;
+    line-height: 1.45;
+}
+
 body[data-theme="peppa-wutz"] .question-card {
     background: linear-gradient(180deg, #ff9fc7 0%, #ff78ab 100%);
     border-color: #dc588d;
@@ -531,6 +597,33 @@ body[data-theme="peppa-wutz"] .scoreboard-row.is-round-winner {
 body[data-theme="peppa-wutz"] .scoreboard-badge {
     background: rgba(111, 23, 63, 0.12);
     color: #6f173f;
+}
+
+body[data-theme="peppa-wutz"] .submission-card.is-round-winner {
+    box-shadow:
+        0 0 0 4px rgba(255, 225, 236, 0.98),
+        0 0 0 10px rgba(210, 106, 149, 0.22),
+        0 18px 30px rgba(17, 84, 133, 0.22);
+}
+
+body[data-theme="peppa-wutz"] .submission-winner-badge {
+    background: rgba(255, 225, 236, 0.95);
+    color: #6f173f;
+}
+
+body[data-theme="peppa-wutz"] .scoreboard-status.is-ready {
+    background: rgba(105, 210, 88, 0.2);
+    color: #1f5c17;
+}
+
+body[data-theme="peppa-wutz"] .scoreboard-status.is-pending {
+    background: rgba(16, 60, 93, 0.12);
+    color: #1a527d;
+}
+
+body[data-theme="peppa-wutz"] .scoreboard-status.is-swapped {
+    background: rgba(97, 198, 255, 0.2);
+    color: #124f74;
 }
 
 body[data-theme="peppa-wutz"] .submission-card.hidden {

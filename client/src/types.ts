@@ -59,9 +59,21 @@ export interface ExtensionCatalogOption {
   variants: string[];
 }
 
+export interface ClientReconnectWindowPlayer {
+  playerId: string;
+  playerName: string;
+}
+
+export interface ClientReconnectWindow {
+  players: ClientReconnectWindowPlayer[];
+  deadline: number;
+}
+
 export interface ClientGameState {
   code: string;
   phase: GamePhase;
+  phaseDeadline: number | null;
+  reconnectWindow: ClientReconnectWindow | null;
   players: ClientPlayer[];
   currentRound: number;
   maxTrophies: TrophyTarget;

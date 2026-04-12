@@ -1,4 +1,4 @@
-import { ClientPlayer } from '../types';
+import { ClientPlayer, GamePhase } from '../types';
 
 interface ScoreboardProps {
   players: ClientPlayer[];
@@ -6,6 +6,7 @@ interface ScoreboardProps {
   bossId: string | null;
   roundWinnerId: string | null;
   maxTrophies: number;
+  phase: GamePhase;
 }
 
 export default function Scoreboard({
@@ -14,6 +15,7 @@ export default function Scoreboard({
   bossId,
   roundWinnerId,
   maxTrophies,
+  phase,
 }: ScoreboardProps) {
   const sorted = [...players].sort((a, b) => b.trophies - a.trophies);
 
@@ -31,6 +33,11 @@ export default function Scoreboard({
               {p.name}
               {p.id === roundWinnerId && <span className="scoreboard-badge">Rundensieg</span>}
               {p.id === myId && ' (Du)'}
+              {phase === GamePhase.SUBMITTING && p.id !== bossId && p.isConnected && (
+                <span className={`scoreboard-status ${p.swappedThisRound ? 'is-swapped' : p.hasSubmitted ? 'is-ready' : 'is-pending'}`}>
+                  {p.swappedThisRound ? 'tauscht aus' : p.hasSubmitted ? 'fertig' : 'offen'}
+                </span>
+              )}
             </span>
             <span className="scoreboard-trophies">
               {'🏆'.repeat(p.trophies)}

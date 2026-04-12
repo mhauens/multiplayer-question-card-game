@@ -21,7 +21,7 @@ Use this file as a quick repo-specific review summary. The canonical rules remai
 - The server is the source of truth for gameplay rules, permissions, and phase transitions.
 - The client should mirror server state and should not invent gameplay rules locally.
 - Keep user-facing UI copy in German unless the task explicitly requires another language.
-- Client session recovery depends on `sessionStorage`; flag regressions that switch player sessions back to `localStorage` without a clear reason.
+- Active leave removes a player immediately, but unexpected disconnects pause the game for a 30 second reconnect window; flag regressions in that distinction.
 
 ## Cross-Stack Review Notes
 

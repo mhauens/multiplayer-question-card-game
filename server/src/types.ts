@@ -27,12 +27,26 @@ export interface Player {
   isConnected: boolean;
   isHost: boolean;
   swappedThisRound: boolean;
+  inactiveRounds: number;
 }
 
 export interface Submission {
   playerId: string;
+  playerName: string;
   cardIds: string[];
   revealed: boolean;
+}
+
+export interface ReconnectWindowPlayer {
+  playerId: string;
+  playerName: string;
+}
+
+export interface ReconnectWindow {
+  players: ReconnectWindowPlayer[];
+  deadline: number;
+  pausedPhase: GamePhase;
+  remainingPhaseMs: number | null;
 }
 
 export interface Round {
@@ -42,6 +56,7 @@ export interface Round {
   submissions: Submission[];
   winnerId: string | null;
   phase: GamePhase;
+  phaseDeadline: number | null;
 }
 
 export interface Game {
@@ -55,6 +70,7 @@ export interface Game {
   activeExtensions: string[];
   questionDeck: string[]; // card IDs remaining
   answerDeck: string[]; // card IDs remaining
+  reconnectWindow: ReconnectWindow | null;
   createdAt: number;
 }
 
@@ -107,15 +123,31 @@ export interface PickWinnerPayload {
   playerId: string;
 }
 
+export interface KickPlayerPayload {
+  playerId: string;
+}
+
 export interface RejoinPayload {
   gameCode: string;
   playerId: string;
+}
+
+export interface ClientReconnectWindowPlayer {
+  playerId: string;
+  playerName: string;
+}
+
+export interface ClientReconnectWindow {
+  players: ClientReconnectWindowPlayer[];
+  deadline: number;
 }
 
 // Client-facing state (sanitized - no other player hands)
 export interface ClientGameState {
   code: string;
   phase: GamePhase;
+  phaseDeadline: number | null;
+  reconnectWindow: ClientReconnectWindow | null;
   players: ClientPlayer[];
   currentRound: number;
   maxTrophies: TrophyTarget;

@@ -1,0 +1,28 @@
+{
+  "name": "alltagschaos",
+  "title": "Alltagschaos",
+  "description": "Zusaetzliche Karten fuer peinliche Routinen, Buero-Drama und Familienwahnsinn.",
+  "variants": ["base"],
+  "questions": [
+    { "text": "Der eigentliche Grund fuer mein Zuspaetkommen war ________.", "blanks": 1 },
+    { "text": "Im Elternchat eskalierte heute alles wegen ________.", "blanks": 1 },
+    { "text": "Meine Morgenroutine besteht inzwischen nur noch aus ________ und ________.", "blanks": 2 },
+    { "text": "Das unangenehmste Geraeusch in einer Zoom-Konferenz: ________.", "blanks": 1 },
+    { "text": "Beim Betriebsausflug wurde ich bekannt fuer ________.", "blanks": 1 },
+    { "text": "Die geheimste Zutat in Omas Nudelsalat ist natuerlich ________.", "blanks": 1 },
+    { "text": "Wenn ich endlich kuendige, hinterlasse ich nur noch ________.", "blanks": 1 },
+    { "text": "Mein Nachbar beschwert sich jede Woche ueber ________.", "blanks": 1 },
+    { "text": "Die schlimmste Ueberraschung im AirBnB war ________.", "blanks": 1 },
+    { "text": "Beim Klassentreffen reden ploetzlich alle wieder ueber ________.", "blanks": 1 },
+    { "text": "Der neue Food-Trend kombiniert ________ mit ________.", "blanks": 2 },
+    { "text": "Im Gruppenprojekt durfte ich mich hauptsaechlich um ________ kuemmern.", "blanks": 1 },
+    { "text": "Mein Therapeut nennt ________ mittlerweile ein wiederkehrendes Muster.", "blanks": 1 },
+    { "text": "Im Baumarkt wurde ich spontan beraten zu ________.", "blanks": 1 },
+    { "text": "Wegen ________ darf ich nie wieder in diese Sauna.", "blanks": 1 },
+    { "text": "Das neue Pflichtfach an deutschen Schulen heisst ________.", "blanks": 1 },
+    { "text": "Meine einzige Persoenlichkeit im Urlaub ist ________.", "blanks": 1 },
+    { "text": "Beim Speed-Dating hatte ich sofort eine Meinung zu ________.", "blanks": 1 },
+    { "text": "Die WhatsApp-Sprachnachricht endete leider mit ________.", "blanks": 1 },
+    { "text": "Die ganze Familie verstummte ploetzlich wegen ________.", "blanks": 1 }
+  ]
+}

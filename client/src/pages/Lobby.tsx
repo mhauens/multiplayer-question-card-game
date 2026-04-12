@@ -7,19 +7,19 @@ function formatCatalogName(name: string): string {
   return name
     .split('-')
     .filter(Boolean)
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 }
 
 export default function Lobby() {
-  const { gameState, startGame, leaveGame, availableVariants } = useGame();
+  const { gameState, startGame, leaveGame, availableVariants, kickPlayer } = useGame();
 
   if (!gameState) return null;
 
-  const isHost = gameState.players.find(p => p.id === gameState.myId)?.isHost || false;
+  const isHost = gameState.players.find((player) => player.id === gameState.myId)?.isHost || false;
   const playerCount = gameState.players.length;
   const canStart = isHost && playerCount >= MIN_PLAYERS_TO_START;
-  const activeVariant = availableVariants.find(variant => variant.id === gameState.activeVariant);
+  const activeVariant = availableVariants.find((variant) => variant.id === gameState.activeVariant);
   const activeVariantTitle = activeVariant?.title || formatCatalogName(gameState.activeVariant);
   const activeExtensions = gameState.activeExtensions.map((extensionId) => {
     return activeVariant?.extensions.find((extension) => extension.id === extensionId) || {
@@ -27,6 +27,15 @@ export default function Lobby() {
       title: formatCatalogName(extensionId),
     };
   });
+
+  const handleLeave = async () => {
+    const confirmed = window.confirm('Willst du die Lobby wirklich verlassen?');
+    if (!confirmed) {
+      return;
+    }
+
+    await leaveGame();
+  };
 
   return (
     <div className="lobby-page">
@@ -55,15 +64,28 @@ export default function Lobby() {
         <div className="player-list">
           <h2>Spieler ({playerCount}/{MAX_PLAYERS})</h2>
           <ul>
-            {gameState.players.map(p => (
-              <li key={p.id} className={`player-item ${!p.isConnected ? 'disconnected' : ''}`}>
+            {gameState.players.map((player) => (
+              <li key={player.id} className={`player-item ${!player.isConnected ? 'disconnected' : ''}`}>
                 <span className="player-name">
-                  {p.name}
-                  {p.isHost && <span className="host-badge">Host</span>}
-                  {p.id === gameState.myId && <span className="you-badge">Du</span>}
+                  {player.name}
+                  {player.isHost && <span className="host-badge">Host</span>}
+                  {player.id === gameState.myId && <span className="you-badge">Du</span>}
                 </span>
-                <span className={`player-status ${p.isConnected ? 'online' : 'offline'}`}>
-                  {p.isConnected ? '●' : '○'}
+                <span className="player-controls">
+                  <span className={`player-status ${player.isConnected ? 'online' : 'offline'}`}>
+                    {player.isConnected ? '●' : '○'}
+                  </span>
+                  {isHost && player.id !== gameState.myId && (
+                    <button
+                      type="button"
+                      className="btn btn-text player-kick"
+                      onClick={() => void kickPlayer(player.id)}
+                      aria-label={`${player.name} aus der Lobby entfernen`}
+                      title="Spieler entfernen"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </span>
               </li>
             ))}
@@ -88,7 +110,7 @@ export default function Lobby() {
           <p className="lobby-waiting">Warte auf den Host, um das Spiel zu starten...</p>
         )}
 
-        <button className="btn btn-text lobby-leave" onClick={leaveGame}>
+        <button className="btn btn-text lobby-leave" onClick={() => void handleLeave()}>
           Spiel verlassen
         </button>
       </div>

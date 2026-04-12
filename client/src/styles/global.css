@@ -828,6 +828,22 @@ body[data-theme="peppa-wutz"] {
     font-weight: 600;
 }
 
+.player-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.player-kick {
+    color: var(--red);
+    padding: 0.2rem;
+    font-size: 1rem;
+}
+
+.player-kick:hover:not(:disabled) {
+    color: #fecaca;
+}
+
 .host-badge {
     background: var(--yellow);
     color: var(--black);
@@ -1134,6 +1150,10 @@ body[data-theme="peppa-wutz"] .share-code-display {
 
 body[data-theme="peppa-wutz"] .player-status.offline {
     color: rgba(255, 255, 255, 0.78);
+}
+
+body[data-theme="peppa-wutz"] .player-kick {
+    color: #8e154f;
 }
 
 .rules-modal-close {

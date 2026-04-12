@@ -57,6 +57,7 @@ export class GameManager {
       activeExtensions: selectedExtensions,
       questionDeck,
       answerDeck,
+      reconnectWindow: null,
       createdAt: Date.now(),
     };
 
@@ -71,6 +72,7 @@ export class GameManager {
       isConnected: true,
       isHost: true,
       swappedThisRound: false,
+      inactiveRounds: 0,
     };
 
     gameState.addPlayer(player);
@@ -100,6 +102,7 @@ export class GameManager {
       isConnected: true,
       isHost: false,
       swappedThisRound: false,
+      inactiveRounds: 0,
     };
 
     gameState.addPlayer(player);
@@ -138,7 +141,6 @@ export class GameManager {
     const player = gameState.getPlayer(playerId);
     if (!player) return null;
 
-    player.isConnected = true;
     return { gameState, player };
   }
 

@@ -11,7 +11,7 @@ function GameRouter() {
   if (isRestoringSession) {
     return (
       <div className="connection-bar">
-        Stelle Spielsession wieder her...
+        Stelle Verbindung zum letzten Spiel wieder her...
       </div>
     );
   }

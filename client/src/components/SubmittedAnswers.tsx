@@ -1,10 +1,11 @@
-import { ClientSubmission } from '../types';
+import { ClientSubmission, GamePhase } from '../types';
 import '../styles/cards.css';
 
 interface SubmittedAnswersProps {
   submissions: ClientSubmission[];
   isBoss: boolean;
-  phase: string;
+  phase: GamePhase;
+  winnerId: string | null;
   onReveal: (index: number) => void;
   onRevealAll: () => void;
   onPickWinner: (playerId: string) => void;
@@ -14,6 +15,7 @@ export default function SubmittedAnswers({
   submissions,
   isBoss,
   phase,
+  winnerId,
   onReveal,
   onRevealAll,
   onPickWinner,
@@ -21,9 +23,9 @@ export default function SubmittedAnswers({
   if (submissions.length === 0) return null;
 
   const allRevealed = submissions.every(s => s.revealed);
-  const isRevealing = phase === 'REVEALING';
-  const isJudging = phase === 'JUDGING';
-  const isRoundEnd = phase === 'ROUND_END';
+  const isRevealing = phase === GamePhase.REVEALING;
+  const isJudging = phase === GamePhase.JUDGING;
+  const isRoundEnd = phase === GamePhase.ROUND_END;
 
   return (
     <div className="submitted-answers">
@@ -47,7 +49,7 @@ export default function SubmittedAnswers({
         {submissions.map((sub, index) => (
           <div
             key={index}
-            className={`submission-card ${sub.revealed ? 'revealed' : 'hidden'} ${isJudging && isBoss ? 'pickable' : ''} ${isRoundEnd && sub.playerId ? 'show-name' : ''}`}
+            className={`submission-card ${sub.revealed ? 'revealed' : 'hidden'} ${isJudging && isBoss ? 'pickable' : ''} ${isRoundEnd && sub.playerId ? 'show-name' : ''} ${isRoundEnd && sub.playerId === winnerId ? 'is-round-winner' : ''}`}
             onClick={() => {
               if (!sub.revealed && isBoss && isRevealing) {
                 onReveal(index);
@@ -66,7 +68,12 @@ export default function SubmittedAnswers({
                   ))}
                 </div>
                 {isRoundEnd && (
-                  <div className="submission-player">{sub.playerName}</div>
+                  <div className="submission-player-wrap">
+                    <div className="submission-player">{sub.playerName}</div>
+                    {sub.playerId === winnerId && (
+                      <div className="submission-winner-badge">Ausgewählt vom Boss</div>
+                    )}
+                  </div>
                 )}
                 {isJudging && isBoss && (
                   <div className="pick-hint">Klicke zum Auswählen</div>

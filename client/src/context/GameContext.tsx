@@ -4,33 +4,39 @@ import { CardCatalogOption, ClientGameState } from '../types';
 import { useSocket } from '../hooks/useSocket';
 import { applyVariantTheme } from '../theme';
 
-const SESSION_STORAGE_KEY = 'kgds-session';
+const RECONNECT_STORAGE_KEY = 'kgds-reconnect-session';
 
-interface StoredSession {
+interface StoredReconnectSession {
   gameCode: string;
   playerId: string;
+  playerName?: string;
 }
 
-function loadStoredSession(): StoredSession | null {
-  const rawSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
+function shouldAttemptSessionRestore(): boolean {
+  const pathname = window.location.pathname;
+  return pathname.startsWith('/lobby') || pathname.startsWith('/game');
+}
+
+function loadStoredSession(): StoredReconnectSession | null {
+  const rawSession = localStorage.getItem(RECONNECT_STORAGE_KEY);
   if (!rawSession) {
     return null;
   }
 
   try {
-    return JSON.parse(rawSession) as StoredSession;
+    return JSON.parse(rawSession) as StoredReconnectSession;
   } catch {
-    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    localStorage.removeItem(RECONNECT_STORAGE_KEY);
     return null;
   }
 }
 
-function saveStoredSession(session: StoredSession) {
-  sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+function saveStoredSession(session: StoredReconnectSession): void {
+  localStorage.setItem(RECONNECT_STORAGE_KEY, JSON.stringify(session));
 }
 
-function clearStoredSession() {
-  sessionStorage.removeItem(SESSION_STORAGE_KEY);
+function clearStoredSession(): void {
+  localStorage.removeItem(RECONNECT_STORAGE_KEY);
 }
 
 interface GameContextType {
@@ -43,13 +49,15 @@ interface GameContextType {
   createGame: (playerName: string, maxTrophies: TrophyTarget, variant: string, extensions: string[]) => Promise<string | null>;
   joinGame: (gameCode: string, playerName: string) => Promise<string | null>;
   startGame: () => Promise<void>;
+  rematch: () => Promise<void>;
   submitAnswer: (cardIds: string[]) => Promise<void>;
   swapCards: () => Promise<void>;
   revealSubmission: (index: number) => Promise<void>;
   revealAll: () => Promise<void>;
   pickWinner: (playerId: string) => Promise<void>;
+  kickPlayer: (playerId: string) => Promise<void>;
   nextRound: () => Promise<void>;
-  leaveGame: () => void;
+  leaveGame: () => Promise<void>;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -64,7 +72,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const { isConnected, emit, on } = useSocket();
   const [gameState, setGameState] = useState<ClientGameState | null>(null);
   const [availableVariants, setAvailableVariants] = useState<CardCatalogOption[]>([]);
-  const [isRestoringSession, setIsRestoringSession] = useState(() => loadStoredSession() !== null);
+  const [isRestoringSession, setIsRestoringSession] = useState(
+    () => shouldAttemptSessionRestore() && loadStoredSession() !== null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -90,6 +100,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [gameState?.activeVariant]);
 
   useEffect(() => {
+    if (!gameState || gameState.phase === 'LOBBY') {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [gameState]);
+
+  useEffect(() => {
     const unsub1 = on('game-state', (state: ClientGameState) => {
       setGameState(state);
     });
@@ -99,14 +126,70 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       void syncGameState();
     });
 
-    const unsub3 = on('player-disconnected', (data: any) => {
-      showToast(`${data.playerName} hat die Verbindung verloren.`);
+    const unsub3 = on('player-left', (data: any) => {
+      showToast(`${data.playerName} hat das Spiel verlassen.`);
       void syncGameState();
     });
 
-    const unsub4 = on('player-reconnected', (data: any) => {
-      showToast(`${data.playerName} ist wieder da!`);
+    const unsub4 = on('player-disconnected', (data: any) => {
+      showToast(`${data.playerName} ist rausgeflogen. Das Spiel pausiert ${data.reconnectSeconds} Sekunden für den Reconnect.`);
       void syncGameState();
+    });
+
+    const unsub5 = on('player-reconnected', (data: any) => {
+      showToast(`${data.playerName} ist wieder verbunden.`);
+      void syncGameState();
+    });
+
+    const unsub6 = on('player-kicked', (data: any) => {
+      showToast(`${data.playerName} wurde aus der Lobby entfernt.`);
+      void syncGameState();
+    });
+
+    const unsub7 = on('players-auto-removed', (data: any) => {
+      if (Array.isArray(data?.playerNames) && data.playerNames.length > 0) {
+        showToast(`${data.playerNames.join(', ')} wurden wegen Inaktivität entfernt.`);
+      }
+      void syncGameState();
+    });
+
+    const unsub8 = on('players-removed-for-rematch', (data: any) => {
+      if (Array.isArray(data?.playerNames) && data.playerNames.length > 0) {
+        showToast(`${data.playerNames.join(', ')} waren offline und sind nicht in der Revanche dabei.`);
+      }
+      void syncGameState();
+    });
+
+    const unsub9 = on('phase-expired', (data: any) => {
+      if (data?.phase === 'SUBMITTING') {
+        showToast(
+          data?.toPhase === 'ROUND_END'
+            ? 'Die Antwortzeit ist abgelaufen. Ohne Einreichungen endet die Runde direkt.'
+            : 'Die Antwortzeit ist abgelaufen. Es geht weiter mit dem Aufdecken.',
+        );
+      }
+
+      if (data?.phase === 'REVEALING') {
+        showToast('Die Aufdeckzeit ist abgelaufen. Alle Antworten wurden gezeigt.');
+      }
+
+      if (data?.phase === 'JUDGING') {
+        showToast('Die Entscheidungszeit ist abgelaufen. Der Gewinner wurde automatisch gewählt.');
+      }
+    });
+
+    const unsub10 = on('kicked', (data: any) => {
+      clearStoredSession();
+      setGameState(null);
+      setIsRestoringSession(false);
+      showError(data?.message || 'Du wurdest aus der Lobby entfernt.');
+    });
+
+    const unsub11 = on('game-aborted', (data: any) => {
+      clearStoredSession();
+      setGameState(null);
+      setIsRestoringSession(false);
+      showError(data?.message || 'Das Spiel wurde abgebrochen.');
     });
 
     return () => {
@@ -114,8 +197,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       unsub2();
       unsub3();
       unsub4();
+      unsub5();
+      unsub6();
+      unsub7();
+      unsub8();
+      unsub9();
+      unsub10();
+      unsub11();
     };
-  }, [on, showToast, syncGameState]);
+  }, [on, showError, showToast, syncGameState]);
 
   useEffect(() => {
     if (!isConnected) {
@@ -144,6 +234,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (!shouldAttemptSessionRestore()) {
+      setIsRestoringSession(false);
+      return;
+    }
+
     const storedSession = loadStoredSession();
     if (!storedSession) {
       setIsRestoringSession(false);
@@ -151,6 +246,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
 
     let isCancelled = false;
+    setIsRestoringSession(true);
 
     void emit('rejoin-game', storedSession).then((response) => {
       if (isCancelled) {
@@ -182,13 +278,51 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     saveStoredSession({
       gameCode: response.gameCode,
       playerId: response.playerId,
+      playerName,
     });
     setIsRestoringSession(false);
     return response.gameCode;
   }, [emit, showError]);
 
   const joinGame = useCallback(async (gameCode: string, playerName: string) => {
-    const response = await emit('join-game', { gameCode, playerName });
+    const normalizedGameCode = gameCode.trim().toUpperCase();
+    const normalizedPlayerName = playerName.trim();
+    const response = await emit('join-game', { gameCode: normalizedGameCode, playerName: normalizedPlayerName });
+
+    if (response.error) {
+      const storedSession = loadStoredSession();
+      const matchesStoredGame = storedSession?.gameCode?.toUpperCase() === normalizedGameCode;
+      const matchesStoredName = !storedSession?.playerName
+        || storedSession.playerName.toLowerCase() === normalizedPlayerName.toLowerCase();
+
+      if (matchesStoredGame && matchesStoredName) {
+        const rejoinResponse = await emit('rejoin-game', {
+          gameCode: normalizedGameCode,
+          playerId: storedSession.playerId,
+        });
+
+        if (!rejoinResponse?.error && rejoinResponse?.state) {
+          setGameState(rejoinResponse.state);
+          saveStoredSession({
+            gameCode: rejoinResponse.gameCode,
+            playerId: rejoinResponse.playerId,
+            playerName: normalizedPlayerName,
+          });
+          setIsRestoringSession(false);
+          return rejoinResponse.gameCode;
+        }
+
+        if (rejoinResponse?.error) {
+          clearStoredSession();
+          showError(rejoinResponse.error);
+          return null;
+        }
+      }
+
+      showError(response.error);
+      return null;
+    }
+
     if (response.error) {
       showError(response.error);
       return null;
@@ -197,6 +331,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     saveStoredSession({
       gameCode: response.gameCode,
       playerId: response.playerId,
+      playerName: normalizedPlayerName,
     });
     setIsRestoringSession(false);
     return response.gameCode;
@@ -204,6 +339,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const startGame = useCallback(async () => {
     const response = await emit('start-game');
+    if (response.error) showError(response.error);
+  }, [emit, showError]);
+
+  const rematch = useCallback(async () => {
+    const response = await emit('rematch');
     if (response.error) showError(response.error);
   }, [emit, showError]);
 
@@ -233,16 +373,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (response.error) showError(response.error);
   }, [emit, showError]);
 
+  const kickPlayer = useCallback(async (playerId: string) => {
+    const response = await emit('kick-player', { playerId });
+    if (response.error) showError(response.error);
+  }, [emit, showError]);
+
   const nextRound = useCallback(async () => {
     const response = await emit('next-round');
     if (response.error) showError(response.error);
   }, [emit, showError]);
 
-  const leaveGame = useCallback(() => {
+  const leaveGame = useCallback(async () => {
+    if (gameState) {
+      await emit('leave-game');
+    }
+
     clearStoredSession();
     setGameState(null);
     setIsRestoringSession(false);
-  }, []);
+  }, [emit, gameState]);
 
   return (
     <GameContext.Provider value={{
@@ -255,11 +404,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       createGame,
       joinGame,
       startGame,
+      rematch,
       submitAnswer,
       swapCards,
       revealSubmission,
       revealAll,
       pickWinner,
+      kickPlayer,
       nextRound,
       leaveGame,
     }}>

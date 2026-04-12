@@ -28,7 +28,7 @@ Use this file as the project-wide default guidance for any coding agent or LLM. 
   - server authorization in `server/src/socket/handlers.ts`
   - client affordances and messaging in `client/src/pages/` and `client/src/components/`
   - rules/help text shown in the UI when relevant
-- Client session recovery currently depends on `sessionStorage`; do not switch it back to `localStorage` for player sessions without a clear reason.
+- Active "leave game" should remove the player immediately, but unexpected disconnects now pause the game for a 30 second reconnect window before removal.
 
 ## Build And Validation
 

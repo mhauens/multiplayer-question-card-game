@@ -5,10 +5,12 @@ interface GameOverProps {
   winnerId: string | null;
   winnerName: string | null;
   myId: string;
+  isHost: boolean;
+  onRematch: () => void;
   onLeave: () => void;
 }
 
-export default function GameOver({ players, winnerId, winnerName, myId, onLeave }: GameOverProps) {
+export default function GameOver({ players, winnerId, winnerName, myId, isHost, onRematch, onLeave }: GameOverProps) {
   const sorted = [...players].sort((a, b) => b.trophies - a.trophies);
   const isWinner = winnerId === myId;
 
@@ -44,9 +46,19 @@ export default function GameOver({ players, winnerId, winnerName, myId, onLeave 
           </ol>
         </div>
 
-        <button className="btn btn-primary btn-large" onClick={onLeave}>
-          Zurück zur Startseite
-        </button>
+        <div className="game-over-actions">
+          {isHost ? (
+            <button className="btn btn-primary btn-large" onClick={onRematch}>
+              Nochmal spielen
+            </button>
+          ) : (
+            <p className="game-over-waiting">Warte auf den Host, um direkt eine Revanche zu starten.</p>
+          )}
+
+          <button className="btn btn-secondary btn-large" onClick={onLeave}>
+            Zurück zur Startseite
+          </button>
+        </div>
       </div>
     </div>
   );

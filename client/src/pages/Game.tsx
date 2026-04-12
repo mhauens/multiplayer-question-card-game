@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { GamePhase } from '../types';
@@ -7,11 +7,13 @@ import PlayerHand from '../components/PlayerHand';
 import SubmittedAnswers from '../components/SubmittedAnswers';
 import Scoreboard from '../components/Scoreboard';
 import GameOver from '../components/GameOver';
+import ReconnectOverlay from '../components/ReconnectOverlay';
 import RulesModal from '../components/RulesModal';
 import '../styles/game.css';
 
 export default function Game() {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [now, setNow] = useState(Date.now());
   const navigate = useNavigate();
   const {
     gameState,
@@ -21,8 +23,25 @@ export default function Game() {
     revealAll,
     pickWinner,
     nextRound,
+    rematch,
     leaveGame,
   } = useGame();
+
+  useEffect(() => {
+    setNow(Date.now());
+
+    if (!gameState?.phaseDeadline && !gameState?.reconnectWindow?.deadline) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [gameState?.phaseDeadline, gameState?.reconnectWindow?.deadline]);
 
   if (!gameState) return null;
 
@@ -30,9 +49,15 @@ export default function Game() {
   const me = gameState.players.find(p => p.id === gameState.myId);
   const boss = gameState.players.find(p => p.id === gameState.bossId);
   const blanksNeeded = gameState.currentQuestion?.blanks || 1;
+  const reconnectingPlayerNames = gameState.reconnectWindow?.players.map((player) => player.playerName) || [];
 
-  const handleLeave = () => {
-    leaveGame();
+  const handleLeave = async () => {
+    const confirmed = window.confirm('Willst du das Spiel wirklich verlassen?');
+    if (!confirmed) {
+      return;
+    }
+
+    await leaveGame();
     navigate('/');
   };
 
@@ -43,6 +68,8 @@ export default function Game() {
         winnerId={gameState.gameWinnerId}
         winnerName={gameState.gameWinnerName}
         myId={gameState.myId}
+        isHost={me?.isHost || false}
+        onRematch={rematch}
         onLeave={handleLeave}
       />
     );
@@ -55,8 +82,18 @@ export default function Game() {
 
   const isRoundEnd = gameState.phase === GamePhase.ROUND_END;
   const canStartNextRound = isRoundEnd && isBoss;
+  const activeDeadline = gameState.reconnectWindow?.deadline || gameState.phaseDeadline;
+  const remainingSeconds = activeDeadline
+    ? Math.max(0, Math.ceil((activeDeadline - now) / 1000))
+    : null;
 
   const phaseLabel = () => {
+    if (gameState.reconnectWindow) {
+      return reconnectingPlayerNames.length === 1
+        ? `Pausiert für den Reconnect von ${reconnectingPlayerNames[0]}`
+        : `Pausiert für ${reconnectingPlayerNames.length} Verbindungen`;
+    }
+
     switch (gameState.phase) {
       case GamePhase.SUBMITTING:
         return isBoss
@@ -81,6 +118,11 @@ export default function Game() {
         <div className="game-header-left">
           <span className="game-round">Runde {gameState.currentRound}</span>
           <span className="game-phase">{phaseLabel()}</span>
+          {remainingSeconds !== null && (
+            <span className={`phase-timer ${remainingSeconds <= 10 ? 'is-urgent' : ''}`}>
+              ⏱ {remainingSeconds}s
+            </span>
+          )}
         </div>
         <div className="game-header-right">
           <button className="btn btn-text game-header-link" onClick={() => setIsRulesOpen(true)}>
@@ -118,6 +160,7 @@ export default function Game() {
               submissions={gameState.submissions}
               isBoss={isBoss}
               phase={gameState.phase}
+              winnerId={gameState.winnerId}
               onReveal={revealSubmission}
               onRevealAll={revealAll}
               onPickWinner={pickWinner}
@@ -148,7 +191,7 @@ export default function Game() {
               blanksNeeded={blanksNeeded}
               onSubmit={submitAnswer}
               onSwap={swapCards}
-              disabled={false}
+              disabled={Boolean(gameState.reconnectWindow)}
               hasSubmitted={me?.hasSubmitted || false}
               isBoss={isBoss}
               swappedThisRound={me?.swappedThisRound || false}
@@ -161,14 +204,24 @@ export default function Game() {
             players={gameState.players}
             myId={gameState.myId}
             bossId={gameState.bossId}
-            roundWinnerId={gameState.lastRoundWinnerId}
+            roundWinnerId={isRoundEnd ? gameState.winnerId : null}
             maxTrophies={gameState.maxTrophies}
+            phase={gameState.phase}
           />
-          <button className="btn btn-text btn-small game-leave" onClick={handleLeave}>
+          <button className="btn btn-text btn-small game-leave" onClick={() => void handleLeave()}>
             Spiel verlassen
           </button>
         </div>
       </div>
+
+      {gameState.reconnectWindow && (
+        <ReconnectOverlay
+          playerNames={reconnectingPlayerNames}
+          deadline={gameState.reconnectWindow.deadline}
+          title="Spiel pausiert"
+          body="Die Runde läuft weiter, sobald alle betroffenen Personen wieder verbunden sind oder das Zeitfenster endet."
+        />
+      )}
 
       <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} />
     </div>

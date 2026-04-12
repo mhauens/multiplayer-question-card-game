@@ -27,7 +27,7 @@ Spieler koennen:
 |  |- src/
 |  |  |- components/    UI-Bausteine wie Karten, Scoreboard, Regeln-Modal
 |  |  |- context/       globaler Spielzustand im Browser
-|  |  |- hooks/         Socket-Kommunikation und Reconnect-Verhalten
+|  |  |- hooks/         Socket-Kommunikation, Reconnect und Pause bei Verbindungsabbruch
 |  |  |- pages/         Home, Lobby, Game
 |  |  |- styles/        globale Styles, Karten- und Game-Layout
 |  |  |- App.tsx        Routing der App
@@ -179,7 +179,8 @@ Wichtige Server-Umgebungsvariablen:
 
 - `GameContext` kapselt den Spielzustand fuer die UI.
 - `GameContext` laedt den Variantenkatalog ueber `get-variants`, spiegelt `activeVariant` und `activeExtensions` aus dem Serverzustand und setzt das passende Theme.
-- `useSocket` verwaltet die Socket.IO-Verbindung, inklusive Reconnect und Session-Wiederherstellung.
+- `useSocket` verwaltet die Socket.IO-Verbindung, inklusive Reconnect und ACK-basierter Kommunikation.
+- `GameContext` speichert fuer laufende Partien eine lokale Reconnect-Identitaet, damit ein Reload oder Browser-Neustart innerhalb des Zeitfensters denselben Spieler wieder anmelden kann.
 - `Home.tsx` enthaelt die Host-Auswahl fuer Variante und variantenspezifische Erweiterungen.
 - `theme.ts` ordnet Varianten Client-Themes zu; aktuell hat `peppa-wutz` ein eigenes Theme, `base` ist der Fallback.
 - Routing in `App.tsx` unterscheidet zwischen Startseite, Lobby und laufendem Spiel.
@@ -206,9 +207,10 @@ Wichtige Server-Umgebungsvariablen:
 
 Aktueller Stand der Basisdaten:
 
-- Basisfragen: 60
-- Basisantworten: 120
-- Variante `peppa-wutz`: 30 Fragen, 124 Antworten
+- Basisfragen: 80
+- Basisantworten: 160
+- Variante `peppa-wutz`: 31 Fragen, 125 Antworten
+- Erweiterung `alltagschaos`: 20 Fragen, 40 Antworten
 
 Die Basisvariante `base` wird aus `server/data/base-questions.json` und `server/data/base-answers.json` aufgebaut.
 
@@ -329,7 +331,9 @@ Wenn du Varianten, Erweiterungen oder Themes aenderst, pruefe zusaetzlich:
 ## Hinweise
 
 - Das Repo ist auf `pnpm` ausgerichtet.
-- Der Client nutzt fuer die Sitzung `sessionStorage`, damit parallele Tabs sich nicht gegenseitig ueberschreiben.
+- Wenn jemand im laufenden Spiel die Verbindung verliert, pausiert die Partie bis zu 30 Sekunden fuer einen Reconnect und laeuft danach mit oder ohne diese Person weiter.
+- Wer aktiv auf "Spiel verlassen" geht, wird sofort aus der laufenden Partie entfernt.
+- Wenn nach Ablauf des Reconnect-Fensters in einer laufenden Partie weniger als 3 Spieler uebrig bleiben, wird das Spiel fuer alle abgebrochen.
 - Socket-Events sind ACK-basiert, der Server antwortet also auf Aktionen direkt mit Erfolg oder Fehlermeldung.
 - React StrictMode kann lokal kurz doppelte Mount-/Unmount-Zyklen verursachen; der Socket-Client ist deshalb auf Wiederverwendung mit Grace-Period ausgelegt.
 - Automatisierte Tests laufen mit Vitest in Client und Server; fuer Gameplay-Aenderungen bleibt der manuelle Spielfluss mit zwei Sessions trotzdem wichtig.

@@ -23,7 +23,8 @@ user-invocable: true
 - Players may swap their hand during submit phase and skip that round.
 - Only the current round boss can reveal submissions, pick the winner, and start the next round.
 - The next boss rotates to the next connected player.
-- Reconnect flows depend on the saved browser session.
+- Unexpected disconnects pause the game for up to 30 seconds so the affected player can reconnect via the saved browser session.
+- Active leave still removes the player immediately.
 
 ## Rule Sources
 

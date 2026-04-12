@@ -3,6 +3,10 @@ export const MAX_PLAYERS = 8;
 export const HAND_SIZE = 8;
 export const TROPHY_TARGET_OPTIONS = [3, 5, 7, 10] as const;
 export const DEFAULT_MAX_TROPHIES = 5;
+export const SUBMIT_TIMER_SECONDS = 180;
+export const BOSS_PHASE_TIMER_SECONDS = 180;
+export const RECONNECT_GRACE_SECONDS = 30;
+export const MAX_INACTIVE_ROUNDS = 3;
 
 export type TrophyTarget = (typeof TROPHY_TARGET_OPTIONS)[number];
 
