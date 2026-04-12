@@ -122,7 +122,7 @@ pnpm build:server
 
 Wenn du an den gemeinsamen Regeln unter `packages/game-rules/` arbeitest, nutze `pnpm dev`, `pnpm dev:client` oder `pnpm dev:server`, damit der Shared-Build im Watch-Modus mitlaeuft.
 
-Direkte Paketbefehle fuer `client` oder `server` setzen voraus, dass der Shared-Build bereits aktuell ist. Nach Aenderungen unter `packages/game-rules/` zuerst `pnpm run build:shared` im Repo-Root ausfuehren oder einen der Root-`dev`-Befehle verwenden.
+Direkte Paket-Builds fuer `client` und `server` bauen das Shared-Paket automatisch mit und bleiben damit mit bestehenden CI- und Render-Build-Kommandos kompatibel. Die Root-Shortcuts `pnpm build:client`, `pnpm build:server` und `pnpm build` steuern die Build-Reihenfolge zentral, ohne das Shared-Paket doppelt zu bauen.
 
 Produktionsstart des Servers:
 

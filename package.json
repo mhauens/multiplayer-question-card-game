@@ -11,9 +11,9 @@
     "lint": "eslint client/src server/src server/test packages/game-rules/src --ext .ts,.tsx",
     "lint:fix": "eslint client/src server/src server/test packages/game-rules/src --ext .ts,.tsx --fix",
     "test": "pnpm run build:shared && pnpm --filter client test && pnpm --filter server test",
-    "build:client": "pnpm run build:shared && pnpm --filter client build",
-    "build:server": "pnpm run build:shared && pnpm --filter server build",
-    "build": "pnpm run build:shared && pnpm --filter client build && pnpm --filter server build",
+    "build:client": "pnpm run build:shared && pnpm --filter client build:isolated",
+    "build:server": "pnpm run build:shared && pnpm --filter server build:isolated",
+    "build": "pnpm run build:shared && pnpm --filter client build:isolated && pnpm --filter server build:isolated",
     "start": "pnpm --filter server start"
   },
   "devDependencies": {

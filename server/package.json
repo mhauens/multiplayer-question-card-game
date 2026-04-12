@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "pnpm --filter @kgs/game-rules build && pnpm run build:isolated",
+    "build:isolated": "tsc",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest"
