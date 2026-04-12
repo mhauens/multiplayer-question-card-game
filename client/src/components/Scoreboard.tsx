@@ -4,10 +4,17 @@ interface ScoreboardProps {
   players: ClientPlayer[];
   myId: string;
   bossId: string | null;
+  roundWinnerId: string | null;
   maxTrophies: number;
 }
 
-export default function Scoreboard({ players, myId, bossId, maxTrophies }: ScoreboardProps) {
+export default function Scoreboard({
+  players,
+  myId,
+  bossId,
+  roundWinnerId,
+  maxTrophies,
+}: ScoreboardProps) {
   const sorted = [...players].sort((a, b) => b.trophies - a.trophies);
 
   return (
@@ -17,11 +24,12 @@ export default function Scoreboard({ players, myId, bossId, maxTrophies }: Score
         {sorted.map(p => (
           <div
             key={p.id}
-            className={`scoreboard-row ${p.id === myId ? 'is-me' : ''} ${!p.isConnected ? 'disconnected' : ''}`}
+            className={`scoreboard-row ${p.id === myId ? 'is-me' : ''} ${p.id === roundWinnerId ? 'is-round-winner' : ''} ${!p.isConnected ? 'disconnected' : ''}`}
           >
             <span className="scoreboard-name">
               {p.id === bossId && <span className="boss-icon" title="Rundenboss">👑</span>}
               {p.name}
+              {p.id === roundWinnerId && <span className="scoreboard-badge">Rundensieg</span>}
               {p.id === myId && ' (Du)'}
             </span>
             <span className="scoreboard-trophies">

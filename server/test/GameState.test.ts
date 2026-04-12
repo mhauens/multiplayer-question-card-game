@@ -118,5 +118,60 @@ describe('GameState', () => {
     const roundEndState = state.getClientState('p1');
     expect(roundEndState.phase).toBe(GamePhase.ROUND_END);
     expect(roundEndState.submissions.some((submission) => submission.playerName !== '???')).toBe(true);
+    expect(roundEndState.lastRoundWinnerId).toBe(winnerId);
+    expect(roundEndState.lastRoundWinnerName).toBe(state.getPlayer(winnerId!)?.name);
+  });
+
+  it('keeps the last round winner visible after the next round starts', () => {
+    const game = createGame();
+    game.questionDeck = [questionCard.id, questionCard.id];
+
+    const state = createState(game);
+    state.startGame();
+
+    const secondPlayerCard = state.getPlayer('p2')?.hand[0];
+    const thirdPlayerCard = state.getPlayer('p3')?.hand[0];
+
+    state.submitAnswer('p2', [secondPlayerCard!]);
+    state.submitAnswer('p3', [thirdPlayerCard!]);
+    state.revealAllSubmissions();
+    state.pickWinner('p2');
+
+    const roundEndState = state.getClientState('p1');
+    expect(roundEndState.lastRoundWinnerId).toBe('p2');
+    expect(roundEndState.lastRoundWinnerName).toBe('Bert');
+
+    state.nextRound();
+
+    const nextRoundState = state.getClientState('p1');
+    expect(nextRoundState.phase).toBe(GamePhase.SUBMITTING);
+    expect(nextRoundState.winnerId).toBeNull();
+    expect(nextRoundState.lastRoundWinnerId).toBe('p2');
+    expect(nextRoundState.lastRoundWinnerName).toBe('Bert');
+  });
+
+  it('reports the actual game winner for the game-over popup', () => {
+    const game = createGame();
+    game.players[0].trophies = 2;
+    game.players[1].trophies = 1;
+    game.players[2].trophies = 0;
+
+    const state = createState(game);
+    state.startGame();
+
+    const secondPlayerCard = state.getPlayer('p2')?.hand[0];
+    const thirdPlayerCard = state.getPlayer('p3')?.hand[0];
+
+    state.submitAnswer('p2', [secondPlayerCard!]);
+    state.submitAnswer('p3', [thirdPlayerCard!]);
+    state.revealAllSubmissions();
+    state.pickWinner('p2');
+    state.nextRound();
+
+    const gameOverState = state.getClientState('p1');
+    expect(gameOverState.phase).toBe(GamePhase.GAME_OVER);
+    expect(gameOverState.lastRoundWinnerId).toBe('p2');
+    expect(gameOverState.gameWinnerId).toBe('p1');
+    expect(gameOverState.gameWinnerName).toBe('Anna');
   });
 });

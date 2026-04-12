@@ -54,6 +54,17 @@ export class GameState {
     return this.getPlayer(round.bossId);
   }
 
+  private getLastCompletedRound(): Round | undefined {
+    for (let index = this.game.rounds.length - 1; index >= 0; index -= 1) {
+      const round = this.game.rounds[index];
+      if (round.winnerId) {
+        return round;
+      }
+    }
+
+    return undefined;
+  }
+
   canStart(): boolean {
     return this.game.players.length >= MIN_PLAYERS_TO_START && this.game.phase === GamePhase.LOBBY;
   }
@@ -276,6 +287,8 @@ export class GameState {
   getClientState(forPlayerId: string): ClientGameState {
     const player = this.getPlayer(forPlayerId);
     const round = this.getCurrentRound();
+    const lastCompletedRound = this.getLastCompletedRound();
+    const gameWinner = this.getWinner();
     const questionCard = round ? this.cardDeck.getCard(round.questionCardId) : null;
 
     const clientPlayers: ClientPlayer[] = this.game.players.map(p => ({
@@ -324,6 +337,12 @@ export class GameState {
       submissions: clientSubmissions,
       winnerId: round?.winnerId || null,
       winnerName: round?.winnerId ? this.getPlayer(round.winnerId)?.name || null : null,
+      lastRoundWinnerId: lastCompletedRound?.winnerId || null,
+      lastRoundWinnerName: lastCompletedRound?.winnerId
+        ? this.getPlayer(lastCompletedRound.winnerId)?.name || null
+        : null,
+      gameWinnerId: gameWinner?.id || null,
+      gameWinnerName: gameWinner?.name || null,
     };
   }
 

@@ -325,6 +325,15 @@
     color: var(--yellow);
 }
 
+.scoreboard-row.is-round-winner {
+    margin: 0 -0.5rem;
+    padding: 0.625rem 0.5rem;
+    border-radius: 12px;
+    background: rgba(245, 197, 24, 0.14);
+    border-bottom-color: rgba(245, 197, 24, 0.24);
+    box-shadow: inset 0 0 0 1px rgba(245, 197, 24, 0.28);
+}
+
 .scoreboard-row.disconnected {
     opacity: 0.5;
 }
@@ -339,6 +348,19 @@
 
 .boss-icon {
     font-size: 0.875rem;
+}
+
+.scoreboard-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(245, 197, 24, 0.18);
+    color: var(--yellow);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .scoreboard-trophies {
@@ -497,6 +519,18 @@ body[data-theme="peppa-wutz"] .scoreboard {
 
 body[data-theme="peppa-wutz"] .scoreboard-row.is-me {
     color: var(--yellow-light);
+}
+
+body[data-theme="peppa-wutz"] .scoreboard-row.is-round-winner {
+    background: rgba(255, 225, 236, 0.95);
+    border-bottom-color: rgba(210, 106, 149, 0.5);
+    box-shadow: inset 0 0 0 1px rgba(210, 106, 149, 0.7);
+    color: #6f173f;
+}
+
+body[data-theme="peppa-wutz"] .scoreboard-badge {
+    background: rgba(111, 23, 63, 0.12);
+    color: #6f173f;
 }
 
 body[data-theme="peppa-wutz"] .submission-card.hidden {

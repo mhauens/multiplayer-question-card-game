@@ -128,6 +128,10 @@ export interface ClientGameState {
   submissions: ClientSubmission[];
   winnerId: string | null;
   winnerName: string | null;
+  lastRoundWinnerId: string | null;
+  lastRoundWinnerName: string | null;
+  gameWinnerId: string | null;
+  gameWinnerName: string | null;
 }
 
 export interface ClientPlayer {

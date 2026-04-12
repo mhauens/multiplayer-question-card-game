@@ -40,8 +40,8 @@ export default function Game() {
     return (
       <GameOver
         players={gameState.players}
-        winnerId={gameState.winnerId}
-        winnerName={gameState.winnerName}
+        winnerId={gameState.gameWinnerId}
+        winnerName={gameState.gameWinnerName}
         myId={gameState.myId}
         onLeave={handleLeave}
       />
@@ -161,6 +161,7 @@ export default function Game() {
             players={gameState.players}
             myId={gameState.myId}
             bossId={gameState.bossId}
+            roundWinnerId={gameState.lastRoundWinnerId}
             maxTrophies={gameState.maxTrophies}
           />
           <button className="btn btn-text btn-small game-leave" onClick={handleLeave}>
