@@ -1,3 +1,4 @@
+import { HAND_SIZE, MIN_PLAYERS_TO_START } from '@kgs/game-rules';
 import {
   Game,
   GamePhase,
@@ -8,8 +9,6 @@ import {
   ClientSubmission,
 } from '../types';
 import { CardDeck } from './CardDeck';
-
-const HAND_SIZE = 8;
 
 export class GameState {
   game: Game;
@@ -56,7 +55,7 @@ export class GameState {
   }
 
   canStart(): boolean {
-    return this.game.players.length >= 3 && this.game.phase === GamePhase.LOBBY;
+    return this.game.players.length >= MIN_PLAYERS_TO_START && this.game.phase === GamePhase.LOBBY;
   }
 
   startGame(): void {

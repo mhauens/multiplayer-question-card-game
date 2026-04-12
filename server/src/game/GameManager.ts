@@ -1,3 +1,4 @@
+import { DEFAULT_MAX_TROPHIES, MAX_PLAYERS, isValidTrophyTarget, type TrophyTarget } from '@kgs/game-rules';
 import { CardCatalogOption, ExtensionCatalogOption, Game, GamePhase, GamePreview, Player } from '../types';
 import { randomUUID } from 'crypto';
 import { GameState } from './GameState';
@@ -32,22 +33,25 @@ export class GameManager {
     return this.cardDeck.getAvailableExtensions();
   }
 
-  createGame(hostName: string, maxTrophies: number, variant: string, extensions: string[]): { gameState: GameState; player: Player } {
+  createGame(hostName: string, maxTrophies: TrophyTarget, variant: string, extensions: string[]): { gameState: GameState; player: Player } {
     let code = generateGameCode();
     while (this.games.has(code)) {
       code = generateGameCode();
     }
 
+    const normalizedMaxTrophies = isValidTrophyTarget(maxTrophies)
+      ? maxTrophies
+      : DEFAULT_MAX_TROPHIES;
     const selectedVariant = this.cardDeck.hasVariant(variant) ? variant : 'base';
-  const selectedExtensions = this.cardDeck.getValidExtensionsForVariant(selectedVariant, extensions);
-  const { questionDeck, answerDeck } = this.cardDeck.createDecks(selectedVariant, selectedExtensions);
+    const selectedExtensions = this.cardDeck.getValidExtensionsForVariant(selectedVariant, extensions);
+    const { questionDeck, answerDeck } = this.cardDeck.createDecks(selectedVariant, selectedExtensions);
 
     const game: Game = {
       code,
       players: [],
       rounds: [],
       currentRound: 0,
-      maxTrophies: maxTrophies || 5,
+      maxTrophies: normalizedMaxTrophies,
       phase: GamePhase.LOBBY,
       activeVariant: selectedVariant,
       activeExtensions: selectedExtensions,
@@ -80,7 +84,7 @@ export class GameManager {
     if (!gameState) return null;
 
     if (gameState.game.phase !== GamePhase.LOBBY) return null;
-    if (gameState.game.players.length >= 8) return null;
+    if (gameState.game.players.length >= MAX_PLAYERS) return null;
 
     // Check for duplicate name
     if (gameState.game.players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {

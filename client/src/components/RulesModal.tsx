@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { HAND_SIZE, MAX_PLAYERS, MIN_PLAYERS_TO_START } from '@kgs/game-rules';
 
 interface RulesModalProps {
   isOpen: boolean;
@@ -10,15 +11,15 @@ const rulesSections = [
     title: 'Lobby und Start',
     items: [
       'Eine Person erstellt als Host die Lobby und teilt Code oder Einladungslink.',
-      'Gespielt wird online mit 3 bis 8 Personen.',
+      `Gespielt wird online mit ${MIN_PLAYERS_TO_START} bis ${MAX_PLAYERS} Personen.`,
       'Der Host legt beim Erstellen fest, wie viele Trophäen zum Sieg nötig sind.',
-      'Sobald mindestens 3 Spieler in der Lobby sind, kann der Host das Spiel starten.',
+      `Sobald mindestens ${MIN_PLAYERS_TO_START} Spieler in der Lobby sind, kann der Host das Spiel starten.`,
     ],
   },
   {
     title: 'Rundenablauf',
     items: [
-      'Zu Beginn erhält jeder automatisch 8 Antwortkarten auf die Hand.',
+      `Zu Beginn erhält jeder automatisch ${HAND_SIZE} Antwortkarten auf die Hand.`,
       'Der aktuelle Rundenboss bekommt die Fragekarte, alle anderen wählen digital ihre passende Antwort.',
       'Bei mehreren Lücken müssen genau so viele Antwortkarten ausgewählt werden wie die Frage verlangt.',
       'Sobald alle aktiven Nicht-Bosse abgegeben haben, wechselt die Runde automatisch ins Aufdecken.',
@@ -36,7 +37,7 @@ const rulesSections = [
   {
     title: 'Nächste Runde',
     items: [
-      'Nach jeder Runde werden die Hände automatisch wieder auf 8 Karten aufgefüllt.',
+      `Nach jeder Runde werden die Hände automatisch wieder auf ${HAND_SIZE} Karten aufgefüllt.`,
       'Nur der aktuelle Rundenboss kann die nächste Runde starten.',
       'Der Boss wechselt dann automatisch zum nächsten verbundenen Spieler.',
     ],

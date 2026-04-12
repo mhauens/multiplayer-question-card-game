@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
+import { DEFAULT_MAX_TROPHIES, TROPHY_TARGET_OPTIONS, type TrophyTarget } from '@kgs/game-rules';
 import { CardCatalogOption, GamePreview } from '../types';
 import { resolveServerUrl } from '../serverUrl';
 import { applyVariantTheme } from '../theme';
@@ -27,7 +28,7 @@ export default function Home() {
   const [mode, setMode] = useState<'menu' | 'create' | 'join'>(code || isJoinRoute ? 'join' : 'menu');
   const [playerName, setPlayerName] = useState('');
   const [gameCode, setGameCode] = useState(code?.toUpperCase() || '');
-  const [maxTrophies, setMaxTrophies] = useState(5);
+  const [maxTrophies, setMaxTrophies] = useState<TrophyTarget>(DEFAULT_MAX_TROPHIES);
   const [selectedVariant, setSelectedVariant] = useState('base');
   const [selectedExtensionsByVariant, setSelectedExtensionsByVariant] = useState<Record<string, string[]>>({});
   const [gamePreview, setGamePreview] = useState<GamePreview | null>(null);
@@ -196,7 +197,7 @@ export default function Home() {
             <div className="trophy-selector">
               <label>Trophäen zum Sieg:</label>
               <div className="trophy-buttons">
-                {[3, 5, 7, 10].map(n => (
+                {TROPHY_TARGET_OPTIONS.map(n => (
                   <button
                     key={n}
                     className={`btn btn-small ${maxTrophies === n ? 'btn-active' : 'btn-outline'}`}

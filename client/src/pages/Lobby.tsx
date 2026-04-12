@@ -1,3 +1,4 @@
+import { MAX_PLAYERS, MIN_PLAYERS_TO_START } from '@kgs/game-rules';
 import { useGame } from '../context/GameContext';
 import ShareAccessPanel from '../components/ShareAccessPanel';
 import '../styles/global.css';
@@ -17,7 +18,7 @@ export default function Lobby() {
 
   const isHost = gameState.players.find(p => p.id === gameState.myId)?.isHost || false;
   const playerCount = gameState.players.length;
-  const canStart = isHost && playerCount >= 3;
+  const canStart = isHost && playerCount >= MIN_PLAYERS_TO_START;
   const activeVariant = availableVariants.find(variant => variant.id === gameState.activeVariant);
   const activeVariantTitle = activeVariant?.title || formatCatalogName(gameState.activeVariant);
   const activeExtensions = gameState.activeExtensions.map((extensionId) => {
@@ -52,7 +53,7 @@ export default function Lobby() {
         </div>
 
         <div className="player-list">
-          <h2>Spieler ({playerCount}/8)</h2>
+          <h2>Spieler ({playerCount}/{MAX_PLAYERS})</h2>
           <ul>
             {gameState.players.map(p => (
               <li key={p.id} className={`player-item ${!p.isConnected ? 'disconnected' : ''}`}>
@@ -76,8 +77,8 @@ export default function Lobby() {
               onClick={startGame}
               disabled={!canStart}
             >
-              {playerCount < 3
-                ? `Noch ${3 - playerCount} Spieler benötigt`
+              {playerCount < MIN_PLAYERS_TO_START
+                ? `Noch ${MIN_PLAYERS_TO_START - playerCount} Spieler benötigt`
                 : 'Spiel starten!'}
             </button>
           </div>

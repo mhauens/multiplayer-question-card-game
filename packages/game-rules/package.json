@@ -1,0 +1,27 @@
+{
+  "name": "@kgs/game-rules",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+      "build": "tsup",
+      "dev": "tsup --watch"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.js",
+        "default": "./dist/index.mjs"
+    }
+  },
+  "devDependencies": {
+      "tsup": "^8.5.0",
+    "typescript": "^6.0.2"
+  }
+}

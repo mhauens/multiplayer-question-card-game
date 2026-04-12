@@ -113,6 +113,17 @@ pnpm --filter server test:watch
 pnpm --filter client preview
 ```
 
+Build-Shortcuts fuer einzelne Deployments:
+
+```bash
+pnpm build:client
+pnpm build:server
+```
+
+Wenn du an den gemeinsamen Regeln unter `packages/game-rules/` arbeitest, nutze `pnpm dev`, `pnpm dev:client` oder `pnpm dev:server`, damit der Shared-Build im Watch-Modus mitlaeuft.
+
+Direkte Paketbefehle fuer `client` oder `server` setzen voraus, dass der Shared-Build bereits aktuell ist. Nach Aenderungen unter `packages/game-rules/` zuerst `pnpm run build:shared` im Repo-Root ausfuehren oder einen der Root-`dev`-Befehle verwenden.
+
 Produktionsstart des Servers:
 
 ```bash
@@ -122,13 +133,35 @@ pnpm start
 
 Wichtig: `pnpm start` erwartet den zuvor gebauten Server unter `server/dist`.
 
+## Deployment Auf Render
+
+Das Repository enthaelt eine `render.yaml`, die den Server als Render Web Service und den Client als Render Static Site fuer dieses Monorepo vorkonfiguriert.
+
+Wenn du die Services ueber die Render-Blueprint-Funktion anlegst, werden diese Einstellungen aus dem Repository uebernommen, inklusive SPA-Rewrite fuer Client-Routen wie `/join/:code`, `/lobby` und `/game`.
+
+Wenn Client und Server stattdessen manuell als getrennte Render-Services angelegt werden, sind diese Kommandos die passenden Defaults:
+
+Wichtig: Beide Render-Services sollten als Root Directory das Repository-Root verwenden, nicht `client/` oder `server/`, weil die Build-Kommandos auf den pnpm-Workspace und das Shared-Paket zugreifen.
+
+- Static Site fuer den Client:
+  - Build Command: `pnpm build:client`
+  - Publish Directory: `client/dist`
+  - Rewrite Rule: `/* -> /index.html` als `rewrite`, damit BrowserRouter-Direktaufrufe und Refreshs funktionieren
+  - Wichtige Variable: `VITE_SERVER_URL` mit der oeffentlichen Server-URL
+- Web Service fuer den Server:
+  - Build Command: `pnpm build:server`
+  - Start Command: `pnpm start`
+  - Wichtige Variable: `CLIENT_URL` mit der oeffentlichen Client-URL
+
+Wenn beide Teile in einer Render-Umgebung gemeinsam gebaut werden, bleibt `pnpm build` weiterhin gueltig.
+
 ## Laufzeit und Ports
 
-- Client lokal: http://localhost:5173
-- Server lokal: http://localhost:3001
-- Health-Check: http://localhost:3001/api/health
-- Verfuegbare Varianten: http://localhost:3001/api/variants
-- Verfuegbare Erweiterungen: http://localhost:3001/api/extensions
+- Client lokal: <http://localhost:5173>
+- Server lokal: <http://localhost:3001>
+- Health-Check: <http://localhost:3001/api/health>
+- Verfuegbare Varianten: <http://localhost:3001/api/variants>
+- Verfuegbare Erweiterungen: <http://localhost:3001/api/extensions>
 
 Hinweis:
 

@@ -1,3 +1,5 @@
+import { type TrophyTarget } from '@kgs/game-rules';
+
 export enum GamePhase {
   LOBBY = 'LOBBY',
   READING = 'READING',
@@ -47,7 +49,7 @@ export interface Game {
   players: Player[];
   rounds: Round[];
   currentRound: number;
-  maxTrophies: number;
+  maxTrophies: TrophyTarget;
   phase: GamePhase;
   activeVariant: string;
   activeExtensions: string[];
@@ -87,7 +89,7 @@ export interface CardCatalogOption {
 
 export interface CreateGamePayload {
   playerName: string;
-  maxTrophies: number;
+  maxTrophies: TrophyTarget;
   variant: string;
   extensions: string[];
 }
@@ -116,7 +118,7 @@ export interface ClientGameState {
   phase: GamePhase;
   players: ClientPlayer[];
   currentRound: number;
-  maxTrophies: number;
+  maxTrophies: TrophyTarget;
   activeVariant: string;
   activeExtensions: string[];
   myHand: Card[];

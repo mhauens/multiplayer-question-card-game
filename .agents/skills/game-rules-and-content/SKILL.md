@@ -123,6 +123,24 @@ The `base` variant is synthesized from these two files in `server/src/game/CardD
 - The chosen `activeVariant` and `activeExtensions` are reflected in lobby and gameplay state.
 - Variant themes are handled in the client via `client/src/theme.ts`; if you add a themed variant, keep theme styling aligned with the chosen content.
 
+## Minimum Card Count For New Variants
+
+- These minimum card counts apply to new full variants, not to extensions.
+- Extensions are only played together with a compatible full variant and therefore do not need to meet the full variant minimums on their own.
+- New full variants must satisfy the minimum card count for the current game rules.
+- The game supports up to 8 players, and each player starts with 8 answer cards.
+- Therefore a new full variant must include at least 64 unique answers so 8 players can all receive unique visible answer texts at the same time without duplicates.
+- The current UI allows up to 10 trophies as the victory target.
+- Only one trophy is awarded per round, and the game ends immediately when a player reaches the selected trophy target.
+- To fully cover the current maximum lobby size and trophy target even for the longest possible game, a new full variant should include at least 73 questions.
+- Use this formula for the question minimum: `max players * (highest selectable maxTrophies - 1) + 1`.
+- With the current repo limits that means `8 * (10 - 1) + 1 = 73` questions.
+- If the maximum player count changes later, both the minimum question count and the minimum answer count must be recalculated and updated as well.
+- If the hand size changes later, the minimum answer count must be recalculated and updated as well.
+- If the highest selectable trophy target changes later, the minimum question count must be recalculated and updated as well.
+- Technically fewer questions can still start a game, but anything below this threshold should be treated as a smaller or intentionally limited variant rather than a normal full variant.
+- If you are creating a smaller experimental variant on purpose, document the limitation clearly instead of treating it as a normal full variant.
+
 ## Change Checklist
 
 If you change rules:
@@ -140,8 +158,12 @@ If you change card content:
 4. Keep every non-base variant and every extension in its own subfolder with one `questions.json` file and one `answers.json` file.
 5. `questions.json` should contain only question data, and `answers.json` should contain only answer data.
 6. If you add an extension, set `variants` when it should not belong only to `base`.
-7. If you add a new full variant, consider whether it also needs a client theme in `client/src/theme.ts` and CSS overrides.
-8. Run `pnpm build` after changes.
+7. If you add a new full variant, make sure it meets the minimum card-count requirement for variants, especially at least 64 unique answers and at least 73 questions for the current 8-player and 10-trophy limits.
+8. If you change the maximum player count, update the documented minimum question and answer requirements for full variants accordingly.
+9. If you change the hand size, update the documented minimum answer requirement for full variants accordingly.
+10. If you change the highest selectable trophy target, update the documented minimum question requirement for full variants accordingly.
+11. If you add a new full variant, consider whether it also needs a client theme in `client/src/theme.ts` and CSS overrides.
+12. Run `pnpm build` after changes.
 
 If you change player-facing variant selection or variant labels:
 

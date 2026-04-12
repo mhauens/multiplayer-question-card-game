@@ -1,4 +1,5 @@
 import { Server, Socket } from 'socket.io';
+import { isValidTrophyTarget, MIN_PLAYERS_TO_START } from '@kgs/game-rules';
 import { GameManager } from '../game/GameManager';
 import {
   CardCatalogOption,
@@ -50,6 +51,11 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
 
       if (!playerName || playerName.trim().length === 0) {
         respond(callback, { error: 'Name darf nicht leer sein.' });
+        return;
+      }
+
+      if (!isValidTrophyTarget(maxTrophies)) {
+        respond(callback, { error: 'Ungueltiges Trophaenziel.' });
         return;
       }
 
@@ -156,7 +162,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
       }
 
       if (!gameState.canStart()) {
-        respond(callback, { error: 'Mindestens 3 Spieler werden benötigt.' });
+        respond(callback, { error: `Mindestens ${MIN_PLAYERS_TO_START} Spieler werden benötigt.` });
         return;
       }
 

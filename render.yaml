@@ -1,0 +1,25 @@
+services:
+  - type: web
+    runtime: node
+    name: kgs-server
+    rootDir: .
+    buildCommand: pnpm build:server
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: CLIENT_URL
+        sync: false
+
+  - type: web
+    runtime: static
+    name: kgs-client
+    rootDir: .
+    buildCommand: pnpm build:client
+    staticPublishPath: ./client/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_SERVER_URL
+        sync: false

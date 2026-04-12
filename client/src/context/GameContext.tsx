@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { type TrophyTarget } from '@kgs/game-rules';
 import { CardCatalogOption, ClientGameState } from '../types';
 import { useSocket } from '../hooks/useSocket';
 import { applyVariantTheme } from '../theme';
@@ -39,7 +40,7 @@ interface GameContextType {
   isRestoringSession: boolean;
   error: string | null;
   toast: string | null;
-  createGame: (playerName: string, maxTrophies: number, variant: string, extensions: string[]) => Promise<string | null>;
+  createGame: (playerName: string, maxTrophies: TrophyTarget, variant: string, extensions: string[]) => Promise<string | null>;
   joinGame: (gameCode: string, playerName: string) => Promise<string | null>;
   startGame: () => Promise<void>;
   submitAnswer: (cardIds: string[]) => Promise<void>;
@@ -171,7 +172,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, [emit, isConnected]);
 
-  const createGame = useCallback(async (playerName: string, maxTrophies: number, variant: string, extensions: string[]) => {
+  const createGame = useCallback(async (playerName: string, maxTrophies: TrophyTarget, variant: string, extensions: string[]) => {
     const response = await emit('create-game', { playerName, maxTrophies, variant, extensions });
     if (response.error) {
       showError(response.error);

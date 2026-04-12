@@ -30,7 +30,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['server/src/**/*.ts', 'server/test/**/*.ts'],
+    files: ['server/src/**/*.ts', 'server/test/**/*.ts', 'packages/game-rules/src/**/*.ts'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
