@@ -8,7 +8,6 @@ import SubmittedAnswers from '../components/SubmittedAnswers';
 import Scoreboard from '../components/Scoreboard';
 import GameOver from '../components/GameOver';
 import RulesModal from '../components/RulesModal';
-import ShareAccessPanel from '../components/ShareAccessPanel';
 import '../styles/game.css';
 
 export default function Game() {
@@ -164,7 +163,6 @@ export default function Game() {
             bossId={gameState.bossId}
             maxTrophies={gameState.maxTrophies}
           />
-          <ShareAccessPanel code={gameState.code} className="game-share-panel" />
           <button className="btn btn-text btn-small game-leave" onClick={handleLeave}>
             Spiel verlassen
           </button>
