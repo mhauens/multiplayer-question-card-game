@@ -642,6 +642,15 @@ body[data-theme="peppa-wutz"] {
     color: var(--yellow);
 }
 
+.lobby-password-badge {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--gray-400);
+    margin-top: 0.35rem;
+    font-family: var(--font-body, inherit);
+}
+
 .share-card {
     padding: 1rem 1.125rem;
     border-radius: var(--radius);

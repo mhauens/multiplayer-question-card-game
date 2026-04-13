@@ -40,7 +40,10 @@ export default function Lobby() {
   return (
     <div className="lobby-page">
       <div className="lobby-container">
-        <h1 className="lobby-title">Lobby</h1>
+        <h1 className="lobby-title">
+          Lobby
+          {gameState.hasPassword && <span className="lobby-password-badge">🔒 Passwortgeschützt</span>}
+        </h1>
 
         <ShareAccessPanel code={gameState.code} className="lobby-share-panel" />
 

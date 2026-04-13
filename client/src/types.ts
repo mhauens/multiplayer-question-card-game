@@ -39,6 +39,7 @@ export interface GamePreview {
   code: string;
   phase: GamePhase;
   activeVariant: string;
+  hasPassword: boolean;
 }
 
 export interface CardCatalogOption {
@@ -90,4 +91,14 @@ export interface ClientGameState {
   lastRoundWinnerName: string | null;
   gameWinnerId: string | null;
   gameWinnerName: string | null;
+  hasPassword: boolean;
+  roundRecap: RoundRecapEntry[] | null;
+}
+
+export interface RoundRecapEntry {
+  roundNumber: number;
+  questionText: string;
+  questionBlanks: number;
+  winnerName: string | null;
+  winningCards: { text: string }[];
 }

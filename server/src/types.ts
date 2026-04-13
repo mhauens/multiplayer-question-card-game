@@ -72,6 +72,7 @@ export interface Game {
   answerDeck: string[]; // card IDs remaining
   reconnectWindow: ReconnectWindow | null;
   createdAt: number;
+  passwordHash: string | null;
 }
 
 export interface CardSet {
@@ -108,11 +109,13 @@ export interface CreateGamePayload {
   maxTrophies: TrophyTarget;
   variant: string;
   extensions: string[];
+  password?: string;
 }
 
 export interface JoinGamePayload {
   gameCode: string;
   playerName: string;
+  password?: string;
 }
 
 export interface SubmitAnswerPayload {
@@ -164,6 +167,8 @@ export interface ClientGameState {
   lastRoundWinnerName: string | null;
   gameWinnerId: string | null;
   gameWinnerName: string | null;
+  hasPassword: boolean;
+  roundRecap: RoundRecapEntry[] | null;
 }
 
 export interface ClientPlayer {
@@ -187,4 +192,13 @@ export interface GamePreview {
   code: string;
   phase: GamePhase;
   activeVariant: string;
+  hasPassword: boolean;
+}
+
+export interface RoundRecapEntry {
+  roundNumber: number;
+  questionText: string;
+  questionBlanks: number;
+  winnerName: string | null;
+  winningCards: { text: string }[];
 }

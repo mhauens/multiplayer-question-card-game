@@ -11,6 +11,7 @@ import {
   GamePhase,
   Player,
   Round,
+  RoundRecapEntry,
   ClientGameState,
   ClientPlayer,
   ClientSubmission,
@@ -787,7 +788,35 @@ export class GameState {
       lastRoundWinnerName: this.getWinnerNameForRound(lastCompletedRound),
       gameWinnerId: gameWinner?.id || null,
       gameWinnerName: gameWinner?.name || null,
+      hasPassword: this.game.passwordHash !== null,
+      roundRecap: this.game.phase === GamePhase.GAME_OVER ? this.getRoundRecap() : null,
     };
+  }
+
+  getRoundRecap(): RoundRecapEntry[] {
+    return this.game.rounds
+      .filter(round => round.winnerId !== null)
+      .map(round => {
+        const questionCard = this.cardDeck.getCard(round.questionCardId);
+        const winningSubmission = round.submissions.find(s => s.playerId === round.winnerId);
+        const winnerName = winningSubmission?.playerName
+          || this.getPlayer(round.winnerId!)?.name
+          || null;
+        const winningCards = winningSubmission
+          ? winningSubmission.cardIds
+              .map(id => this.cardDeck.getCard(id))
+              .filter(Boolean)
+              .map(card => ({ text: card!.text }))
+          : [];
+
+        return {
+          roundNumber: round.roundNumber,
+          questionText: questionCard?.text || '',
+          questionBlanks: questionCard?.blanks || 1,
+          winnerName,
+          winningCards,
+        };
+      });
   }
 
   getWinner(): Player | undefined {

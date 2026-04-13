@@ -1,8 +1,12 @@
 import { DEFAULT_MAX_TROPHIES, MAX_PLAYERS, isValidTrophyTarget, type TrophyTarget } from '@kgs/game-rules';
 import { CardCatalogOption, ExtensionCatalogOption, Game, GamePhase, GamePreview, Player } from '../types';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 import { GameState } from './GameState';
 import { CardDeck } from './CardDeck';
+
+function hashPassword(password: string): string {
+  return createHash('sha256').update(password).digest('hex');
+}
 
 function generateGameCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I, O, 0, 1 to avoid confusion
@@ -33,7 +37,7 @@ export class GameManager {
     return this.cardDeck.getAvailableExtensions();
   }
 
-  createGame(hostName: string, maxTrophies: TrophyTarget, variant: string, extensions: string[]): { gameState: GameState; player: Player } {
+  createGame(hostName: string, maxTrophies: TrophyTarget, variant: string, extensions: string[], password?: string): { gameState: GameState; player: Player } {
     let code = generateGameCode();
     while (this.games.has(code)) {
       code = generateGameCode();
@@ -59,6 +63,7 @@ export class GameManager {
       answerDeck,
       reconnectWindow: null,
       createdAt: Date.now(),
+      passwordHash: password ? hashPassword(password) : null,
     };
 
     const gameState = new GameState(game, this.cardDeck);
@@ -81,12 +86,19 @@ export class GameManager {
     return { gameState, player };
   }
 
-  joinGame(code: string, playerName: string): { gameState: GameState; player: Player } | null {
+  joinGame(code: string, playerName: string, password?: string): { gameState: GameState; player: Player } | 'wrong-password' | null {
     const gameState = this.games.get(code.toUpperCase());
     if (!gameState) return null;
 
     if (gameState.game.phase !== GamePhase.LOBBY) return null;
     if (gameState.game.players.length >= MAX_PLAYERS) return null;
+
+    // Password check
+    if (gameState.game.passwordHash) {
+      if (!password || hashPassword(password) !== gameState.game.passwordHash) {
+        return 'wrong-password';
+      }
+    }
 
     // Check for duplicate name
     if (gameState.game.players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
@@ -121,6 +133,7 @@ export class GameManager {
       code: gameState.game.code,
       phase: gameState.game.phase,
       activeVariant: gameState.game.activeVariant,
+      hasPassword: gameState.game.passwordHash !== null,
     };
   }
 

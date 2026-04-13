@@ -82,7 +82,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
     });
 
     socket.on('create-game', (payload: CreateGamePayload, callback?: (response: any) => void) => {
-      const { playerName, maxTrophies, variant, extensions } = payload;
+      const { playerName, maxTrophies, variant, extensions, password } = payload;
 
       if (!playerName || playerName.trim().length === 0) {
         respond(callback, { error: 'Name darf nicht leer sein.' });
@@ -104,8 +104,11 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
       }
 
       const selectedExtensions = Array.isArray(extensions) ? extensions : [];
+      const sanitizedPassword = typeof password === 'string' && password.trim().length > 0
+        ? password.trim().slice(0, 50)
+        : undefined;
 
-      const result = gameManager.createGame(playerName.trim(), maxTrophies, selectedVariant, selectedExtensions);
+      const result = gameManager.createGame(playerName.trim(), maxTrophies, selectedVariant, selectedExtensions, sanitizedPassword);
       const { gameState, player } = result;
 
       player.socketId = socket.id;
@@ -119,7 +122,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
     });
 
     socket.on('join-game', (payload: JoinGamePayload, callback?: (response: any) => void) => {
-      const { gameCode, playerName } = payload;
+      const { gameCode, playerName, password } = payload;
 
       if (!playerName || playerName.trim().length === 0) {
         respond(callback, { error: 'Name darf nicht leer sein.' });
@@ -131,7 +134,11 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
         return;
       }
 
-      const result = gameManager.joinGame(gameCode.trim(), playerName.trim());
+      const result = gameManager.joinGame(gameCode.trim(), playerName.trim(), typeof password === 'string' ? password : undefined);
+      if (result === 'wrong-password') {
+        respond(callback, { error: 'Falsches Passwort.' });
+        return;
+      }
       if (!result) {
         respond(callback, { error: 'Spiel nicht gefunden, bereits gestartet, voll oder Name bereits vergeben.' });
         return;

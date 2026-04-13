@@ -69,6 +69,7 @@ export default function Game() {
         winnerName={gameState.gameWinnerName}
         myId={gameState.myId}
         isHost={me?.isHost || false}
+        roundRecap={gameState.roundRecap}
         onRematch={rematch}
         onLeave={handleLeave}
       />

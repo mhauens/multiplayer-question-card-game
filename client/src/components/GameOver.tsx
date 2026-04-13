@@ -1,4 +1,4 @@
-import { ClientPlayer } from '../types';
+import { ClientPlayer, RoundRecapEntry } from '../types';
 
 interface GameOverProps {
   players: ClientPlayer[];
@@ -6,11 +6,12 @@ interface GameOverProps {
   winnerName: string | null;
   myId: string;
   isHost: boolean;
+  roundRecap: RoundRecapEntry[] | null;
   onRematch: () => void;
   onLeave: () => void;
 }
 
-export default function GameOver({ players, winnerId, winnerName, myId, isHost, onRematch, onLeave }: GameOverProps) {
+export default function GameOver({ players, winnerId, winnerName, myId, isHost, roundRecap, onRematch, onLeave }: GameOverProps) {
   const sorted = [...players].sort((a, b) => b.trophies - a.trophies);
   const isWinner = winnerId === myId;
 
@@ -45,6 +46,30 @@ export default function GameOver({ players, winnerId, winnerName, myId, isHost, 
             ))}
           </ol>
         </div>
+
+        {roundRecap && roundRecap.length > 0 && (
+          <div className="round-recap">
+            <h3>Rundenprotokoll</h3>
+            <div className="round-recap-list">
+              {roundRecap.map((entry) => (
+                <div key={entry.roundNumber} className="round-recap-entry">
+                  <div className="round-recap-header">
+                    <span className="round-recap-number">Runde {entry.roundNumber}</span>
+                    {entry.winnerName && <span className="round-recap-winner">🏆 {entry.winnerName}</span>}
+                  </div>
+                  <p className="round-recap-question">{entry.questionText}</p>
+                  {entry.winningCards.length > 0 && (
+                    <div className="round-recap-answers">
+                      {entry.winningCards.map((card, i) => (
+                        <span key={i} className="round-recap-answer">{card.text}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="game-over-actions">
           {isHost ? (

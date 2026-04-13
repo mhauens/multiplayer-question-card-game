@@ -454,7 +454,7 @@
     border: 2px solid var(--yellow);
     border-radius: var(--radius);
     padding: 2.5rem;
-    max-width: 420px;
+    max-width: 520px;
     width: 100%;
     text-align: center;
     box-shadow: 0 0 40px rgba(245, 197, 24, 0.2);
@@ -529,6 +529,80 @@
     color: var(--gray-500);
     font-size: 0.9375rem;
     line-height: 1.45;
+}
+
+/* ============== ROUND RECAP ============== */
+
+.round-recap {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.round-recap h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gray-500);
+    margin-bottom: 0.75rem;
+    text-align: center;
+}
+
+.round-recap-list {
+    max-height: 280px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-right: 0.25rem;
+}
+
+.round-recap-entry {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius);
+    padding: 0.75rem;
+}
+
+.round-recap-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.round-recap-number {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--yellow);
+}
+
+.round-recap-winner {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--gray-300);
+}
+
+.round-recap-question {
+    font-size: 0.875rem;
+    color: var(--gray-400);
+    margin-bottom: 0.4rem;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+.round-recap-answers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.round-recap-answer {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--white);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
 }
 
 body[data-theme="peppa-wutz"] .question-card {

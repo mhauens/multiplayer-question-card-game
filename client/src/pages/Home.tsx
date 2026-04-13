@@ -33,6 +33,7 @@ export default function Home() {
   const [selectedExtensionsByVariant, setSelectedExtensionsByVariant] = useState<Record<string, string[]>>({});
   const [gamePreview, setGamePreview] = useState<GamePreview | null>(null);
   const [loading, setLoading] = useState(false);
+  const [password, setPassword] = useState('');
 
   const variantOptions = availableVariants.length > 0 ? availableVariants : fallbackVariants;
 
@@ -138,7 +139,7 @@ export default function Home() {
     if (!playerName.trim()) return;
     setLoading(true);
     const selectedExtensions = selectedExtensionsByVariant[selectedVariant] || [];
-    const resultCode = await createGame(playerName.trim(), maxTrophies, selectedVariant, selectedExtensions);
+    const resultCode = await createGame(playerName.trim(), maxTrophies, selectedVariant, selectedExtensions, password || undefined);
     setLoading(false);
     if (resultCode) {
       navigate('/lobby');
@@ -148,7 +149,7 @@ export default function Home() {
   const handleJoin = async () => {
     if (!playerName.trim() || !gameCode.trim()) return;
     setLoading(true);
-    const resultCode = await joinGame(gameCode.trim(), playerName.trim());
+    const resultCode = await joinGame(gameCode.trim(), playerName.trim(), password || undefined);
     setLoading(false);
     if (resultCode) {
       navigate('/lobby');
@@ -265,6 +266,15 @@ export default function Home() {
                 ))}
               </div>
             </div>
+            <input
+              type="password"
+              placeholder="Passwort (optional)"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              maxLength={50}
+              className="input"
+              autoComplete="off"
+            />
             <button
               className="btn btn-primary btn-large"
               onClick={handleCreate}
@@ -299,6 +309,17 @@ export default function Home() {
               autoComplete="off"
               spellCheck={false}
             />
+            {gamePreview?.hasPassword && (
+              <input
+                type="password"
+                placeholder="Lobby-Passwort"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                maxLength={50}
+                className="input"
+                autoComplete="off"
+              />
+            )}
             <button
               className="btn btn-primary btn-large"
               onClick={handleJoin}
@@ -306,7 +327,7 @@ export default function Home() {
             >
               {loading ? 'Trete bei...' : 'Beitreten'}
             </button>
-            <button className="btn btn-text" onClick={() => { setMode('menu'); setGameCode(''); }}>
+            <button className="btn btn-text" onClick={() => { setMode('menu'); setGameCode(''); setPassword(''); }}>
               ← Zurück
             </button>
           </div>

@@ -46,8 +46,8 @@ interface GameContextType {
   isRestoringSession: boolean;
   error: string | null;
   toast: string | null;
-  createGame: (playerName: string, maxTrophies: TrophyTarget, variant: string, extensions: string[]) => Promise<string | null>;
-  joinGame: (gameCode: string, playerName: string) => Promise<string | null>;
+  createGame: (playerName: string, maxTrophies: TrophyTarget, variant: string, extensions: string[], password?: string) => Promise<string | null>;
+  joinGame: (gameCode: string, playerName: string, password?: string) => Promise<string | null>;
   startGame: () => Promise<void>;
   rematch: () => Promise<void>;
   submitAnswer: (cardIds: string[]) => Promise<void>;
@@ -268,8 +268,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, [emit, isConnected]);
 
-  const createGame = useCallback(async (playerName: string, maxTrophies: TrophyTarget, variant: string, extensions: string[]) => {
-    const response = await emit('create-game', { playerName, maxTrophies, variant, extensions });
+  const createGame = useCallback(async (playerName: string, maxTrophies: TrophyTarget, variant: string, extensions: string[], password?: string) => {
+    const response = await emit('create-game', { playerName, maxTrophies, variant, extensions, password });
     if (response.error) {
       showError(response.error);
       return null;
@@ -284,10 +284,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return response.gameCode;
   }, [emit, showError]);
 
-  const joinGame = useCallback(async (gameCode: string, playerName: string) => {
+  const joinGame = useCallback(async (gameCode: string, playerName: string, password?: string) => {
     const normalizedGameCode = gameCode.trim().toUpperCase();
     const normalizedPlayerName = playerName.trim();
-    const response = await emit('join-game', { gameCode: normalizedGameCode, playerName: normalizedPlayerName });
+    const response = await emit('join-game', { gameCode: normalizedGameCode, playerName: normalizedPlayerName, password });
 
     if (response.error) {
       const storedSession = loadStoredSession();
