@@ -1,6 +1,6 @@
 # Kampf gegen das Spiessertum
 
-Web-Umsetzung des Partyspiels als pnpm-Workspace mit React/Vite im Client und Express/Socket.IO im Server.
+Web-Umsetzung des Partyspiels als pnpm-Workspace mit React/Vite im Client, Express/Socket.IO im Server und einem gemeinsamen Regelpaket unter `packages/game-rules`.
 
 ## Ziel des Projekts
 
@@ -18,12 +18,20 @@ Spieler koennen:
 - Root: pnpm Workspace
 - Client: React 19, React Router 7, Vite 8, TypeScript 6
 - Server: Express 5, Socket.IO 4, TypeScript 6, tsx fuer lokale Entwicklung
+- Shared Package: `@kgs/game-rules` mit TypeScript 6 und tsup
 
 ## Projektstruktur
 
 ```text
 .
+|- AGENTS.md              Hinweise fuer Coding-Agents und Repo-Konventionen
+|- README.md
+|- eslint.config.mjs      gemeinsame Lint-Konfiguration
+|- render.yaml            Render-Blueprint fuer Client und Server
+|- package.json           Root-Skripte fuer den gesamten Workspace
+|- pnpm-workspace.yaml
 |- client/
+|  |- public/
 |  |- src/
 |  |  |- components/    UI-Bausteine wie Karten, Scoreboard, Regeln-Modal
 |  |  |- context/       globaler Spielzustand im Browser
@@ -35,6 +43,12 @@ Spieler koennen:
 |  |  `- main.tsx       Einstiegspunkt des Frontends
 |  |- vite.config.ts    Dev-Server auf Port 5173, Proxy fuer /socket.io
 |  `- package.json
+|- packages/
+|  `- game-rules/
+|     |- src/
+|     |  `- index.ts    gemeinsame Regelkonstanten und Hilfsfunktionen
+|     |- package.json
+|     `- tsup.config.ts
 |- server/
 |  |- data/
 |  |  |- base-questions.json
@@ -46,9 +60,8 @@ Spieler koennen:
 |  |  |- socket/        Socket-Handler fuer alle Spielaktionen
 |  |  |- index.ts       Express-/Socket.IO-Server
 |  |  `- types.ts       gemeinsame Server-Typen
+|  |- test/             Vitest-Suites fuer Spiellogik, Handler und Skills
 |  `- package.json
-|- package.json         Root-Skripte fuer die gesamte App
-`- pnpm-workspace.yaml
 ```
 
 ## Voraussetzungen
@@ -101,9 +114,9 @@ pnpm build
 
 Dabei gilt:
 
-- `pnpm lint` prueft `client/src`, `server/src` und `server/test`
+- `pnpm lint` prueft `client/src`, `server/src`, `server/test` und `packages/game-rules/src`
 - `pnpm test` fuehrt die Vitest-Suites von Client und Server aus
-- `pnpm build` baut Client und Server nacheinander
+- `pnpm build` baut zuerst `@kgs/game-rules` und danach Client und Server
 
 Direkte Paketbefehle sind ebenfalls moeglich:
 
@@ -191,6 +204,11 @@ Wichtige Server-Umgebungsvariablen:
 - `GameState` enthaelt den eigentlichen Regelablauf einer Partie.
 - `CardDeck` baut das Basis-Set synthetisch aus den Basisdateien auf, laedt weitere Varianten und Erweiterungen aus ihren eigenen Set-Unterordnern, ordnet Erweiterungen Varianten zu und filtert ungueltige Erweiterungen beim Spielstart heraus.
 - `socket/handlers.ts` validiert alle Spielaktionen und broadcastet den aktuellen Zustand an alle Spieler.
+
+### Shared Package
+
+- `packages/game-rules/src/index.ts` enthaelt gemeinsame Regelkonstanten wie Mindestspielerzahl, Handgroesse, Trophaeenziele und Reconnect-Zeitfenster.
+- Client, Server und testspezifische Dokumentationspruefungen greifen auf dieses Paket zu, damit zentrale Spielgrenzen nur an einer Stelle gepflegt werden.
 
 ## Wichtige Spielregeln in der Online-Variante
 
@@ -298,6 +316,7 @@ Katalogverhalten in der App:
 
 - Logik in `server/src/game/GameState.ts`
 - Zugriffsrechte und Events in `server/src/socket/handlers.ts`
+- gemeinsame Schwellenwerte und Konstanten in `packages/game-rules/src/index.ts`
 
 ### Neue Karten hinzufuegen
 
