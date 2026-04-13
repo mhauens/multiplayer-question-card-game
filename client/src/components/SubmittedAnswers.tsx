@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { ClientSubmission, GamePhase } from '../types';
 import '../styles/cards.css';
 
@@ -20,6 +21,19 @@ export default function SubmittedAnswers({
   onRevealAll,
   onPickWinner,
 }: SubmittedAnswersProps) {
+  const [pendingWinnerId, setPendingWinnerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (phase !== GamePhase.JUDGING || !isBoss) {
+      setPendingWinnerId(null);
+      return;
+    }
+
+    if (pendingWinnerId && !submissions.some((submission) => submission.playerId === pendingWinnerId && submission.revealed)) {
+      setPendingWinnerId(null);
+    }
+  }, [isBoss, pendingWinnerId, phase, submissions]);
+
   if (submissions.length === 0) return null;
 
   const allRevealed = submissions.every(s => s.revealed);
@@ -49,12 +63,12 @@ export default function SubmittedAnswers({
         {submissions.map((sub, index) => (
           <div
             key={index}
-            className={`submission-card ${sub.revealed ? 'revealed' : 'hidden'} ${isJudging && isBoss ? 'pickable' : ''} ${isRoundEnd && sub.playerId ? 'show-name' : ''} ${isRoundEnd && sub.playerId === winnerId ? 'is-round-winner' : ''}`}
+            className={`submission-card ${sub.revealed ? 'revealed' : 'hidden'} ${isJudging && isBoss ? 'pickable' : ''} ${isJudging && sub.playerId === pendingWinnerId ? 'is-selected' : ''} ${isRoundEnd && sub.playerId ? 'show-name' : ''} ${isRoundEnd && sub.playerId === winnerId ? 'is-round-winner' : ''}`}
             onClick={() => {
               if (!sub.revealed && isBoss && isRevealing) {
                 onReveal(index);
               } else if (sub.revealed && isBoss && isJudging) {
-                onPickWinner(sub.playerId);
+                setPendingWinnerId(sub.playerId);
               }
             }}
           >
@@ -76,7 +90,9 @@ export default function SubmittedAnswers({
                   </div>
                 )}
                 {isJudging && isBoss && (
-                  <div className="pick-hint">Klicke zum Auswählen</div>
+                  <div className="pick-hint">
+                    {sub.playerId === pendingWinnerId ? 'Ausgewählt, unten bestätigen' : 'Klicke zum Auswählen'}
+                  </div>
                 )}
               </>
             ) : (
@@ -91,6 +107,18 @@ export default function SubmittedAnswers({
           </div>
         ))}
       </div>
+
+      {isJudging && isBoss && (
+        <div className="submissions-actions submissions-actions-confirm">
+          <button
+            className="btn btn-primary submissions-confirm-winner"
+            onClick={() => pendingWinnerId && onPickWinner(pendingWinnerId)}
+            disabled={!pendingWinnerId}
+          >
+            Gewinner bestätigen
+          </button>
+        </div>
+      )}
     </div>
   );
 }

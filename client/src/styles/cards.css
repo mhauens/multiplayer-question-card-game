@@ -194,6 +194,11 @@
     margin-bottom: 1.25rem;
 }
 
+.submissions-actions-confirm {
+    margin-top: 1.25rem;
+    margin-bottom: 0;
+}
+
 .submissions-reveal-all {
     min-width: 240px;
     padding: 0.95rem 1.75rem;
@@ -246,6 +251,14 @@
     transform: translateY(-4px);
     box-shadow:
         0 0 0 3px var(--yellow),
+        var(--shadow-lg);
+}
+
+.submission-card.is-selected {
+    transform: translateY(-4px);
+    box-shadow:
+        0 0 0 4px rgba(245, 197, 24, 0.95),
+        0 0 0 10px rgba(245, 197, 24, 0.16),
         var(--shadow-lg);
 }
 
@@ -311,6 +324,14 @@
     color: var(--yellow-dark);
     margin-top: 0.75rem;
     font-weight: 600;
+}
+
+.submissions-confirm-winner {
+    min-width: 260px;
+    padding: 0.95rem 1.75rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    border-radius: var(--radius);
 }
 
 .reveal-hint {
