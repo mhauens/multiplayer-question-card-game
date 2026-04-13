@@ -30,6 +30,10 @@ export default function Game() {
   useEffect(() => {
     setNow(Date.now());
 
+    if (gameState?.phase === GamePhase.GAME_OVER) {
+      return;
+    }
+
     if (!gameState?.phaseDeadline && !gameState?.reconnectWindow?.deadline) {
       return;
     }
@@ -41,7 +45,7 @@ export default function Game() {
     return () => {
       window.clearInterval(timer);
     };
-  }, [gameState?.phaseDeadline, gameState?.reconnectWindow?.deadline]);
+  }, [gameState?.phase, gameState?.phaseDeadline, gameState?.reconnectWindow?.deadline]);
 
   if (!gameState) return null;
 

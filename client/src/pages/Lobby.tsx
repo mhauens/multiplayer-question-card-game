@@ -45,7 +45,7 @@ export default function Lobby() {
           {gameState.hasPassword && <span className="lobby-password-badge">🔒 Passwortgeschützt</span>}
         </h1>
 
-        <ShareAccessPanel code={gameState.code} className="lobby-share-panel" />
+        {isHost && <ShareAccessPanel code={gameState.code} className="lobby-share-panel" />}
 
         <div className="lobby-variant-section">
           <p className="lobby-variant-label">Kartenset:</p>

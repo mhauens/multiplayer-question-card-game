@@ -372,6 +372,9 @@
     gap: 0.375rem;
     font-weight: 600;
     font-size: 0.875rem;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
 }
 
 .boss-icon {
@@ -419,6 +422,8 @@
 
 .scoreboard-trophies {
     font-size: 0.875rem;
+    flex-shrink: 0;
+    text-align: right;
 }
 
 .no-trophies {
@@ -584,25 +589,16 @@
 
 .round-recap-question {
     font-size: 0.875rem;
-    color: var(--gray-400);
-    margin-bottom: 0.4rem;
-    font-style: italic;
-    line-height: 1.4;
+    color: var(--gray-300);
+    line-height: 1.5;
 }
 
-.round-recap-answers {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-}
-
-.round-recap-answer {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--white);
-    background: rgba(255, 255, 255, 0.1);
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
+.round-recap-filled-blank {
+    font-weight: 700;
+    color: var(--yellow);
+    background: rgba(245, 197, 24, 0.12);
+    padding: 0.05rem 0.3rem;
+    border-radius: 3px;
 }
 
 body[data-theme="peppa-wutz"] .question-card {

@@ -1,5 +1,26 @@
 import { ClientPlayer, RoundRecapEntry } from '../types';
 
+function renderQuestionWithAnswers(questionText: string, winningCards: { text: string }[]): (string | React.ReactElement)[] {
+  const parts = questionText.split('________');
+  const result: (string | React.ReactElement)[] = [];
+
+  for (let i = 0; i < parts.length; i++) {
+    result.push(parts[i]);
+    if (i < parts.length - 1) {
+      const answer = winningCards[i];
+      if (answer) {
+        result.push(
+          <span key={i} className="round-recap-filled-blank">{answer.text.replace(/\.$/, '')}</span>,
+        );
+      } else {
+        result.push('________');
+      }
+    }
+  }
+
+  return result;
+}
+
 interface GameOverProps {
   players: ClientPlayer[];
   winnerId: string | null;
@@ -57,14 +78,11 @@ export default function GameOver({ players, winnerId, winnerName, myId, isHost, 
                     <span className="round-recap-number">Runde {entry.roundNumber}</span>
                     {entry.winnerName && <span className="round-recap-winner">🏆 {entry.winnerName}</span>}
                   </div>
-                  <p className="round-recap-question">{entry.questionText}</p>
-                  {entry.winningCards.length > 0 && (
-                    <div className="round-recap-answers">
-                      {entry.winningCards.map((card, i) => (
-                        <span key={i} className="round-recap-answer">{card.text}</span>
-                      ))}
-                    </div>
-                  )}
+                  <p className="round-recap-question">
+                    {entry.winningCards.length > 0
+                      ? renderQuestionWithAnswers(entry.questionText, entry.winningCards)
+                      : entry.questionText}
+                  </p>
                 </div>
               ))}
             </div>
