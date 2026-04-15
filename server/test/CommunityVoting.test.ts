@@ -192,4 +192,40 @@ describe('GameState community voting state', () => {
     const nonBossState = state.getClientState('p2');
     expect(nonBossState.communityVoting.context).toBeNull();
   });
+
+  it('lets the same chatter vote for the same surviving card again in the next round', () => {
+    const state = createState();
+    state.game.questionDeck = [questionCard.id, questionCard.id];
+    state.startGame();
+
+    state.setCommunityVotingConnection('p3', {
+      channelId: 'channel-3',
+      channelLogin: 'chris',
+      channelDisplayName: 'ChrisTV',
+    });
+    state.setCommunityVotingEnabled('p3', true);
+
+    const playerTwo = state.getPlayer('p2');
+    const playerThree = state.getPlayer('p3');
+    expect(playerTwo).toBeDefined();
+    expect(playerThree).toBeDefined();
+
+    const carriedCardId = playerThree!.hand[1];
+
+    expect(state.recordCommunityVote('p3', 'viewer-1', 2)).toBe(true);
+    expect(state.submitAnswer('p2', [playerTwo!.hand[0]])).toBe(true);
+    expect(state.submitAnswer('p3', [playerThree!.hand[0]])).toBe(true);
+
+    state.revealAllSubmissions();
+    expect(state.pickWinner('p3')).toBe(true);
+
+    state.nextRound();
+
+    expect(state.getPlayer('p3')?.hand[0]).toBe(carriedCardId);
+    expect(state.recordCommunityVote('p3', 'viewer-1', 1)).toBe(true);
+
+    const nextRoundContext = state.getClientState('p3').communityVoting.context;
+    expect(nextRoundContext?.totalUniqueVoters).toBe(1);
+    expect(nextRoundContext?.options[0].votes).toBe(1);
+  });
 });

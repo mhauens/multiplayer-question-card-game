@@ -278,6 +278,12 @@ export class GameState {
     state.votesByTargetId.clear();
   }
 
+  private resetAllCommunityVotingContexts(nextContextKey: string | null = null): void {
+    for (const state of this.communityVotingByPlayerId.values()) {
+      this.resetCommunityVotingContext(state, nextContextKey);
+    }
+  }
+
   private getRecommendedTargetIds(
     runtime: CommunityVotingContextRuntime,
     voteCountsByTargetId: Map<string, number>,
@@ -548,6 +554,8 @@ export class GameState {
   }
 
   private startNewRound(bossId: string): void {
+    this.resetAllCommunityVotingContexts();
+
     if (this.game.questionDeck.length === 0) {
       this.game.phase = GamePhase.GAME_OVER;
       return;
@@ -596,6 +604,10 @@ export class GameState {
   private updatePhase(phase: GamePhase, deadlineOverride?: number | null): void {
     const round = this.getCurrentRound();
     this.game.phase = phase;
+
+    if (phase === GamePhase.ROUND_END || phase === GamePhase.GAME_OVER) {
+      this.resetAllCommunityVotingContexts();
+    }
 
     if (!round) {
       return;
