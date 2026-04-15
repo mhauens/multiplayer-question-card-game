@@ -104,6 +104,60 @@
     border: 3px solid var(--black);
 }
 
+.community-vote-overlay {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.4rem 0.55rem;
+    border-radius: 10px;
+    background: rgba(17, 24, 39, 0.9);
+    color: var(--white);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+    z-index: 2;
+}
+
+.community-vote-command {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--yellow-light);
+}
+
+.community-vote-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--gray-300);
+}
+
+.answer-card.has-community-vote,
+.submission-card.has-community-vote {
+    padding-top: 3.1rem;
+}
+
+.answer-card.is-vote-leading,
+.submission-card.is-vote-leading {
+    box-shadow:
+        0 0 0 3px rgba(245, 197, 24, 0.65),
+        var(--shadow-lg);
+}
+
+.answer-card.is-vote-recommended,
+.submission-card.is-vote-recommended {
+    border-color: rgba(245, 197, 24, 0.75);
+}
+
+.submission-vote-overlay {
+    position: static;
+    width: 100%;
+    margin-bottom: 0.9rem;
+}
+
 /* ============== PLAYER HAND ============== */
 
 .player-hand {
@@ -648,6 +702,10 @@ body[data-theme="peppa-wutz"] .selection-badge {
     background: #9de0ff;
     color: #125072;
     border-color: #125072;
+}
+
+body[data-theme="peppa-wutz"] .community-vote-overlay {
+    background: rgba(16, 60, 93, 0.9);
 }
 
 body[data-theme="peppa-wutz"] .boss-info {

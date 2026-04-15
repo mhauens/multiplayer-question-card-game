@@ -702,6 +702,10 @@ body[data-theme="peppa-wutz"] {
     margin-bottom: 1.5rem;
 }
 
+.lobby-community-voting {
+    margin-bottom: 1.5rem;
+}
+
 .lobby-share-panel .share-code-display {
     min-height: 5rem;
     font-size: 3rem;
@@ -801,6 +805,90 @@ body[data-theme="peppa-wutz"] {
     border-radius: var(--radius);
     padding: 1.25rem;
     margin-bottom: 1.5rem;
+}
+
+.community-voting-panel {
+    padding: 1rem 1.125rem;
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.community-voting-panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.community-voting-eyebrow {
+    color: var(--gray-500);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+
+.community-voting-panel h3 {
+    color: var(--yellow);
+    font-size: 1rem;
+}
+
+.community-voting-copy,
+.community-voting-status,
+.community-voting-error,
+.community-voting-live {
+    color: var(--gray-300);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.community-voting-actions {
+    margin-top: 0.85rem;
+}
+
+.community-voting-connection {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+}
+
+.community-voting-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.community-voting-channel {
+    font-size: 0.875rem;
+    color: var(--white);
+}
+
+.community-voting-live {
+    margin-top: 0.75rem;
+}
+
+.community-voting-error {
+    margin-top: 0.75rem;
+    color: #fecaca;
+}
+
+.community-voting-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--gray-300);
+    cursor: pointer;
+}
+
+.community-voting-toggle input {
+    accent-color: var(--yellow);
 }
 
 .player-list h2 {
@@ -1023,6 +1111,7 @@ body[data-theme="peppa-wutz"] .variant-option,
 body[data-theme="peppa-wutz"] .lobby-variant-card,
 body[data-theme="peppa-wutz"] .player-list,
 body[data-theme="peppa-wutz"] .share-card,
+body[data-theme="peppa-wutz"] .community-voting-panel,
 body[data-theme="peppa-wutz"] .rules-section {
     background: var(--peppa-panel);
     border: 1px solid var(--peppa-panel-border);
@@ -1135,6 +1224,7 @@ body[data-theme="peppa-wutz"] .variant-selector label,
 body[data-theme="peppa-wutz"] .lobby-code-label,
 body[data-theme="peppa-wutz"] .lobby-variant-label,
 body[data-theme="peppa-wutz"] .share-card-label,
+body[data-theme="peppa-wutz"] .community-voting-eyebrow,
 body[data-theme="peppa-wutz"] .share-label,
 body[data-theme="peppa-wutz"] .variant-extensions-label,
 body[data-theme="peppa-wutz"] .variant-extension-hint,

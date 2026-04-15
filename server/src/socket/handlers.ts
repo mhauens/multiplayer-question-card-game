@@ -3,6 +3,7 @@ import { isValidTrophyTarget, MIN_PLAYERS_TO_START, RECONNECT_GRACE_SECONDS } fr
 import { GameManager } from '../game/GameManager';
 import {
   CardCatalogOption,
+  CommunityVoteTogglePayload,
   CreateGamePayload,
   ExtensionCatalogOption,
   GamePhase,
@@ -11,7 +12,9 @@ import {
   SubmitAnswerPayload,
   PickWinnerPayload,
   RejoinPayload,
+  TwitchConnectStartPayload,
 } from '../types';
+import { TwitchService } from '../twitch/TwitchService';
 
 type Ack = ((response: any) => void) | undefined;
 
@@ -52,7 +55,18 @@ function rejectIfReconnectPaused(gameState: any, callback: Ack): boolean {
   return true;
 }
 
-export function registerSocketHandlers(io: Server, gameManager: GameManager): void {
+const noopTwitchService = {
+  createOAuthUrl: async () => ({ error: 'Twitch-Integration ist gerade nicht verfuegbar.' }),
+  disconnectPlayer: async () => undefined,
+  cleanupPlayer: async () => undefined,
+  cleanupGame: async () => undefined,
+};
+
+export function registerSocketHandlers(
+  io: Server,
+  gameManager: GameManager,
+  twitchService: Pick<TwitchService, 'createOAuthUrl' | 'disconnectPlayer' | 'cleanupPlayer' | 'cleanupGame'> = noopTwitchService,
+): void {
   const phaseTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   io.on('connection', (socket: Socket) => {
@@ -79,6 +93,61 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
 
       const { gameState, player } = result;
       respond(callback, { state: gameState.getClientState(player.id) });
+    });
+
+    socket.on('twitch-connect:start', async (payload: TwitchConnectStartPayload | undefined, callback?: (response: any) => void) => {
+      const result = gameManager.findGameBySocketId(socket.id);
+      if (!result) {
+        respond(callback, { error: 'Spiel nicht gefunden.' });
+        return;
+      }
+
+      const { gameState, player } = result;
+      if (rejectIfReconnectPaused(gameState, callback)) {
+        return;
+      }
+
+      const response = await twitchService.createOAuthUrl({
+        gameCode: gameState.game.code,
+        playerId: player.id,
+        clientOrigin: payload?.clientOrigin,
+      });
+
+      respond(callback, response);
+    });
+
+    socket.on('twitch-connect:disconnect', async (callback?: (response: any) => void) => {
+      const result = gameManager.findGameBySocketId(socket.id);
+      if (!result) {
+        respond(callback, { error: 'Spiel nicht gefunden.' });
+        return;
+      }
+
+      const { gameState, player } = result;
+      await twitchService.disconnectPlayer(gameState.game.code, player.id);
+      respond(callback, { success: true });
+    });
+
+    socket.on('community-vote:set-enabled', (payload: CommunityVoteTogglePayload, callback?: (response: any) => void) => {
+      const result = gameManager.findGameBySocketId(socket.id);
+      if (!result) {
+        respond(callback, { error: 'Spiel nicht gefunden.' });
+        return;
+      }
+
+      const { gameState, player } = result;
+      if (rejectIfReconnectPaused(gameState, callback)) {
+        return;
+      }
+
+      const success = gameState.setCommunityVotingEnabled(player.id, Boolean(payload?.enabled));
+      if (!success) {
+        respond(callback, { error: 'Twitch muss zuerst verbunden werden.' });
+        return;
+      }
+
+      respond(callback, { success: true });
+      io.to(socket.id).emit('game-state', gameState.getClientState(player.id));
     });
 
     socket.on('create-game', (payload: CreateGamePayload, callback?: (response: any) => void) => {
@@ -160,7 +229,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
       });
 
       // Broadcast updated state to all players
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('rejoin-game', (payload: RejoinPayload, callback?: (response: any) => void) => {
@@ -202,7 +271,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
         playerName: player.name,
       });
 
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('start-game', (callback?: (response: any) => void) => {
@@ -230,7 +299,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
 
       gameState.startGame();
       respond(callback, { success: true });
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('submit-answer', (payload: SubmitAnswerPayload, callback?: (response: any) => void) => {
@@ -253,7 +322,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
       }
 
       respond(callback, { success: true });
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('swap-cards', (callback?: (response: any) => void) => {
@@ -276,7 +345,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
       }
 
       respond(callback, { success: true });
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('reveal-submission', (index: number, callback?: (response: any) => void) => {
@@ -305,7 +374,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
       }
 
       respond(callback, { success: true });
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('reveal-all', (callback?: (response: any) => void) => {
@@ -329,7 +398,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
 
       gameState.revealAllSubmissions();
       respond(callback, { success: true });
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('pick-winner', (payload: PickWinnerPayload, callback?: (response: any) => void) => {
@@ -358,7 +427,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
       }
 
       respond(callback, { success: true });
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('next-round', (callback?: (response: any) => void) => {
@@ -390,7 +459,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
       }
 
       respond(callback, { success: true });
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('rematch', (callback?: (response: any) => void) => {
@@ -422,7 +491,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
       }
 
       respond(callback, { success: true });
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('kick-player', (payload: KickPlayerPayload, callback?: (response: any) => void) => {
@@ -465,15 +534,15 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
       const gameCode = gameState.game.code;
 
       targetSocket?.leave(gameCode);
-
       gameState.removePlayer(targetPlayer.id);
+      void twitchService.cleanupPlayer(gameCode, targetPlayer.id);
 
       targetSocket?.emit('kicked', { message: 'Du wurdest aus der Lobby entfernt.' });
 
       socket.to(gameCode).emit('player-kicked', { playerName: targetPlayer.name });
 
       respond(callback, { success: true });
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('leave-game', (callback?: (response: any) => void) => {
@@ -490,12 +559,14 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
 
       socket.leave(gameCode);
       gameState.removePlayer(player.id);
+      void twitchService.cleanupPlayer(gameCode, player.id);
       socket.to(gameCode).emit('player-left', { playerName });
 
       respond(callback, { success: true });
 
       if (gameState.game.players.length === 0) {
         clearPhaseTimer(phaseTimers, gameCode);
+        void twitchService.cleanupGame(gameCode);
         gameManager.deleteGame(gameCode);
         return;
       }
@@ -505,11 +576,12 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
         io.to(gameCode).emit('game-aborted', {
           message: `Das Spiel wurde abgebrochen, weil weniger als ${MIN_PLAYERS_TO_START} Spieler übrig sind.`,
         });
+        void twitchService.cleanupGame(gameCode);
         gameManager.deleteGame(gameCode);
         return;
       }
 
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
 
     socket.on('disconnect', () => {
@@ -526,7 +598,7 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
           playerName,
           reconnectSeconds: RECONNECT_GRACE_SECONDS,
         });
-        broadcastState(io, gameManager, gameState, phaseTimers);
+        broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
         return;
       }
 
@@ -542,12 +614,13 @@ export function registerSocketHandlers(io: Server, gameManager: GameManager): vo
 
       if (gameState.game.players.length === 0) {
         clearPhaseTimer(phaseTimers, gameCode);
+        void twitchService.cleanupGame(gameCode);
         gameManager.deleteGame(gameCode);
         console.log(`Game ${gameCode} deleted (no players).`);
         return;
       }
 
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     });
   });
 }
@@ -565,6 +638,7 @@ function schedulePhaseTimer(
   gameManager: GameManager,
   gameState: any,
   phaseTimers: Map<string, ReturnType<typeof setTimeout>>,
+  twitchService: Pick<TwitchService, 'cleanupGame' | 'cleanupPlayer'>,
 ): void {
   const gameCode = gameState.game.code;
   clearPhaseTimer(phaseTimers, gameCode);
@@ -584,7 +658,7 @@ function schedulePhaseTimer(
 
       const currentReconnectWindow = gameState.getReconnectWindow?.();
       if (!currentReconnectWindow) {
-        schedulePhaseTimer(io, gameManager, gameState, phaseTimers);
+        schedulePhaseTimer(io, gameManager, gameState, phaseTimers, twitchService);
         return;
       }
 
@@ -595,29 +669,32 @@ function schedulePhaseTimer(
           .join('|') !== expectedPlayerIds
         || currentReconnectWindow.deadline !== expectedDeadline
       ) {
-        schedulePhaseTimer(io, gameManager, gameState, phaseTimers);
+        schedulePhaseTimer(io, gameManager, gameState, phaseTimers, twitchService);
         return;
       }
 
-      const playerNames = gameState.expireReconnectWindow();
-      for (const playerName of playerNames) {
-        io.to(gameCode).emit('player-left', { playerName });
+      const removedPlayers = gameState.expireReconnectWindow();
+      for (const removedPlayer of removedPlayers) {
+        void twitchService.cleanupPlayer(gameCode, removedPlayer.playerId);
+        io.to(gameCode).emit('player-left', { playerName: removedPlayer.playerName });
       }
 
       if (gameState.shouldAbortForTooFewPlayers?.(pausedPhase)) {
         io.to(gameCode).emit('game-aborted', {
           message: `Das Spiel wurde abgebrochen, weil nach dem Reconnect-Fenster weniger als ${MIN_PLAYERS_TO_START} Spieler übrig sind.`,
         });
+        void twitchService.cleanupGame(gameCode);
         gameManager.deleteGame(gameCode);
         return;
       }
 
       if (gameState.game.players.length === 0) {
+        void twitchService.cleanupGame(gameCode);
         gameManager.deleteGame(gameCode);
         return;
       }
 
-      broadcastState(io, gameManager, gameState, phaseTimers);
+      broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
     }, waitTime);
 
     phaseTimers.set(gameCode, timer);
@@ -639,7 +716,7 @@ function schedulePhaseTimer(
     phaseTimers.delete(gameCode);
 
     if (gameState.game.phase !== expectedPhase || gameState.game.currentRound !== expectedRound) {
-      schedulePhaseTimer(io, gameManager, gameState, phaseTimers);
+      schedulePhaseTimer(io, gameManager, gameState, phaseTimers, twitchService);
       return;
     }
 
@@ -652,7 +729,7 @@ function schedulePhaseTimer(
       phase: expectedPhase,
       toPhase: gameState.game.phase,
     });
-    broadcastState(io, gameManager, gameState, phaseTimers);
+    broadcastState(io, gameManager, gameState, phaseTimers, twitchService);
   }, waitTime);
 
   phaseTimers.set(gameCode, timer);
@@ -663,6 +740,7 @@ function broadcastState(
   gameManager: GameManager,
   gameState: any,
   phaseTimers: Map<string, ReturnType<typeof setTimeout>>,
+  twitchService: Pick<TwitchService, 'cleanupGame' | 'cleanupPlayer'>,
 ): void {
   for (const player of gameState.game.players) {
     if (player.socketId) {
@@ -670,5 +748,5 @@ function broadcastState(
     }
   }
 
-  schedulePhaseTimer(io, gameManager, gameState, phaseTimers);
+  schedulePhaseTimer(io, gameManager, gameState, phaseTimers, twitchService);
 }

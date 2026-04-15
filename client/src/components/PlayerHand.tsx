@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Card } from '../types';
+import { Card, ClientCommunityVotingContext } from '../types';
 import AnswerCard from './AnswerCard';
 
 interface PlayerHandProps {
   cards: Card[];
   blanksNeeded: number;
+  communityVotingContext: ClientCommunityVotingContext | null;
   onSubmit: (cardIds: string[]) => void;
   onSwap: () => void;
   disabled: boolean;
@@ -16,6 +17,7 @@ interface PlayerHandProps {
 export default function PlayerHand({
   cards,
   blanksNeeded,
+  communityVotingContext,
   onSubmit,
   onSwap,
   disabled,
@@ -24,6 +26,9 @@ export default function PlayerHand({
   swappedThisRound,
 }: PlayerHandProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const voteOptions = communityVotingContext?.kind === 'SUBMIT_HAND'
+    ? communityVotingContext.options
+    : [];
 
   const toggleCard = (cardId: string) => {
     if (disabled || hasSubmitted || isBoss) return;
@@ -57,7 +62,12 @@ export default function PlayerHand({
         </div>
         <div className="hand-cards">
           {cards.map(card => (
-            <AnswerCard key={card.id} card={card} disabled />
+            <AnswerCard
+              key={card.id}
+              card={card}
+              disabled
+              voteOption={voteOptions.find((option) => option.targetId === card.id)}
+            />
           ))}
         </div>
       </div>
@@ -82,7 +92,12 @@ export default function PlayerHand({
         </div>
         <div className="hand-cards">
           {cards.map(card => (
-            <AnswerCard key={card.id} card={card} disabled />
+            <AnswerCard
+              key={card.id}
+              card={card}
+              disabled
+              voteOption={voteOptions.find((option) => option.targetId === card.id)}
+            />
           ))}
         </div>
       </div>
@@ -115,6 +130,7 @@ export default function PlayerHand({
             selectionOrder={selectedIds.indexOf(card.id) >= 0 ? selectedIds.indexOf(card.id) : undefined}
             onClick={() => toggleCard(card.id)}
             disabled={disabled}
+            voteOption={voteOptions.find((option) => option.targetId === card.id)}
           />
         ))}
       </div>

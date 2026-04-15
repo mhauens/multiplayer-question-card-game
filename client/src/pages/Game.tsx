@@ -9,6 +9,7 @@ import Scoreboard from '../components/Scoreboard';
 import GameOver from '../components/GameOver';
 import ReconnectOverlay from '../components/ReconnectOverlay';
 import RulesModal from '../components/RulesModal';
+import CommunityVotingPanel from '../components/CommunityVotingPanel';
 import '../styles/game.css';
 
 export default function Game() {
@@ -167,6 +168,7 @@ export default function Game() {
               isBoss={isBoss}
               phase={gameState.phase}
               winnerId={gameState.winnerId}
+              communityVotingContext={gameState.communityVoting.context}
               onReveal={revealSubmission}
               onRevealAll={revealAll}
               onPickWinner={pickWinner}
@@ -195,6 +197,7 @@ export default function Game() {
             <PlayerHand
               cards={gameState.myHand}
               blanksNeeded={blanksNeeded}
+              communityVotingContext={gameState.communityVoting.context}
               onSubmit={submitAnswer}
               onSwap={swapCards}
               disabled={Boolean(gameState.reconnectWindow)}
@@ -214,6 +217,7 @@ export default function Game() {
             maxTrophies={gameState.maxTrophies}
             phase={gameState.phase}
           />
+          <CommunityVotingPanel className="game-community-voting" />
           <button className="btn btn-text btn-small game-leave" onClick={() => void handleLeave()}>
             Spiel verlassen
           </button>

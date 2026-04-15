@@ -1,5 +1,6 @@
 import { MAX_PLAYERS, MIN_PLAYERS_TO_START } from '@kgs/game-rules';
 import { useGame } from '../context/GameContext';
+import CommunityVotingPanel from '../components/CommunityVotingPanel';
 import ShareAccessPanel from '../components/ShareAccessPanel';
 import '../styles/global.css';
 
@@ -46,6 +47,8 @@ export default function Lobby() {
         </h1>
 
         {isHost && <ShareAccessPanel code={gameState.code} className="lobby-share-panel" />}
+
+        <CommunityVotingPanel className="lobby-community-voting" />
 
         <div className="lobby-variant-section">
           <p className="lobby-variant-label">Kartenset:</p>

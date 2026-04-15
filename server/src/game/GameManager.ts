@@ -162,15 +162,19 @@ export class GameManager {
   }
 
   // Clean up old games (no connected players for more than 1 hour)
-  cleanup(): void {
+  cleanup(): string[] {
     const now = Date.now();
     const ONE_HOUR = 60 * 60 * 1000;
+    const deletedGameCodes: string[] = [];
 
     for (const [code, gameState] of this.games) {
       const connectedCount = gameState.getConnectedPlayerCount();
       if (connectedCount === 0 && now - gameState.game.createdAt > ONE_HOUR) {
         this.games.delete(code);
+        deletedGameCodes.push(code);
       }
     }
+
+    return deletedGameCodes;
   }
 }

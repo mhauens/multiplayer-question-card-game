@@ -8,10 +8,22 @@ export const BOSS_PHASE_TIMER_SECONDS = 180;
 export const RECONNECT_GRACE_SECONDS = 30;
 export const MAX_INACTIVE_ROUNDS = 3;
 
+export const COMMUNITY_VOTING_CONTEXT_KINDS = ['SUBMIT_HAND', 'JUDGE_SUBMISSIONS'] as const;
+export const COMMUNITY_VOTING_CONNECTION_STATUSES = ['disconnected', 'warning_required', 'connecting', 'connected', 'error'] as const;
+export const TWITCH_MINIMAL_SCOPES = ['user:read:chat'] as const;
+export const COMMUNITY_VOTE_COMMAND = /^!card\s+(\d+)$/i;
+export const COMMUNITY_VOTE_COMMAND_PREFIX = '!card';
+
 export type TrophyTarget = (typeof TROPHY_TARGET_OPTIONS)[number];
+export type CommunityVotingContextKind = (typeof COMMUNITY_VOTING_CONTEXT_KINDS)[number];
+export type CommunityVotingConnectionStatus = (typeof COMMUNITY_VOTING_CONNECTION_STATUSES)[number];
 
 export function isValidTrophyTarget(value: number): value is TrophyTarget {
   return TROPHY_TARGET_OPTIONS.includes(value as TrophyTarget);
+}
+
+export function buildCommunityVoteCommand(voteNumber: number): string {
+  return `${COMMUNITY_VOTE_COMMAND_PREFIX} ${voteNumber}`;
 }
 
 export function getMinimumFullVariantAnswerCount(): number {

@@ -1,4 +1,8 @@
-import { type TrophyTarget } from '@kgs/game-rules';
+import {
+  type CommunityVotingConnectionStatus,
+  type CommunityVotingContextKind,
+  type TrophyTarget,
+} from '@kgs/game-rules';
 
 export enum GamePhase {
   LOBBY = 'LOBBY',
@@ -70,6 +74,37 @@ export interface ClientReconnectWindow {
   deadline: number;
 }
 
+export interface ClientCommunityVotingOption {
+  targetId: string;
+  voteNumber: number;
+  voteCommand: string;
+  votes: number;
+  isLeading: boolean;
+  isRecommended: boolean;
+}
+
+export interface ClientCommunityVotingContext {
+  kind: CommunityVotingContextKind;
+  roundNumber: number;
+  totalUniqueVoters: number;
+  options: ClientCommunityVotingOption[];
+}
+
+export interface ClientCommunityVotingConnection {
+  status: CommunityVotingConnectionStatus;
+  channelLogin: string | null;
+  channelDisplayName: string | null;
+  sharedChatActive: boolean;
+  lastError: string | null;
+}
+
+export interface ClientCommunityVotingState {
+  enabled: boolean;
+  privacyWarningAcknowledgedForSession: boolean;
+  connection: ClientCommunityVotingConnection;
+  context: ClientCommunityVotingContext | null;
+}
+
 export interface ClientGameState {
   code: string;
   phase: GamePhase;
@@ -93,6 +128,7 @@ export interface ClientGameState {
   gameWinnerName: string | null;
   hasPassword: boolean;
   roundRecap: RoundRecapEntry[] | null;
+  communityVoting: ClientCommunityVotingState;
 }
 
 export interface RoundRecapEntry {

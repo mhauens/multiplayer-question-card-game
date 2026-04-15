@@ -62,6 +62,16 @@ const rulesSections = [
     ],
   },
   {
+    title: 'Twitch Community-Voting',
+    items: [
+      'Community-Voting ist optional, pro Spieler getrennt und immer nur eine Empfehlung.',
+      'Vor dem Twitch-OAuth erscheint ein Privacy-Hinweis, damit der Login nicht versehentlich im Stream sichtbar ist.',
+      'Es wird nur der minimale Twitch-Zugriff zum Lesen von Chat-Nachrichten des eigenen Kanals angefordert.',
+      'Nur Stimmen im Format !card <nummer> zählen, und bei Shared Chat werden nur Stimmen aus der eigenen Community gewertet.',
+      'Während einer Reconnect-Pause bleiben bestehende Tallies eingefroren und es werden keine neuen Stimmen ausgewertet.',
+    ],
+  },
+  {
     title: 'Sieg',
     items: [
       'Sobald jemand die vorher festgelegte Zahl an Trophäen erreicht, endet das Spiel sofort.',

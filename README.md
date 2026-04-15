@@ -185,6 +185,37 @@ Wichtige Server-Umgebungsvariablen:
 
 - `PORT` steuert den Server-Port, Standard ist `3001`
 - `CLIENT_URL` steuert den erlaubten Client-Ursprung, Standard ist `http://localhost:5173`
+- `TWITCH_CLIENT_ID` aktiviert die optionale Twitch-Community-Voting-Integration
+- `TWITCH_CLIENT_SECRET` wird nur serverseitig fuer den OAuth-Code-Tausch genutzt
+- `TWITCH_REDIRECT_URI` muss auf den Server-Callback `/api/twitch/oauth/callback` zeigen
+
+Lokale Entwicklung:
+
+- Fuer `pnpm dev` laedt der Server automatisch optionale Dateien in dieser Reihenfolge, ohne bereits gesetzte Prozess-Variablen zu ueberschreiben:
+  - `/.env`
+  - `/.env.local`
+  - `/server/.env`
+  - `/server/.env.local`
+- Fuer lokale Twitch-Tests ist `server/.env.local` meist der einfachste Ort.
+- Beispiel lokal: `TWITCH_REDIRECT_URI=http://localhost:3001/api/twitch/oauth/callback`
+
+Hinweis zur Twitch-Integration:
+
+- Die Verbindung ist optional und pro Spieler getrennt.
+- Vor dem OAuth-Start zeigt der Client einen Privacy-Hinweis, dass der Login nicht im Stream sichtbar sein soll.
+- Es wird nur das minimale Twitch-Scope `user:read:chat` angefordert.
+- Twitch-bezogene Daten werden nicht persistent gespeichert und nur fluechtig im Server-RAM fuer die laufende Partie gehalten.
+- Bei einem unerwarteten Disconnect innerhalb des Reconnect-Fensters bleibt eine bestehende Twitch-Verbindung fuer dieselbe laufende Partie erhalten; waehrend der Pause werden keine neuen Chat-Stimmen ausgewertet.
+- Bei Shared Chat zaehlen nur Stimmen aus der eigenen Community des verbundenen Kanals; fremde Shared-Chat-Quellen werden ignoriert.
+
+Empfohlene Validierung fuer Twitch-Community-Voting:
+
+- `pnpm lint`
+- `pnpm test`
+- `pnpm build`
+- manueller Zwei-Browser-Smoke-Test fuer Connect, Voting und Reconnect
+- manueller Zwei-Kanal-Isolationstest
+- manueller Shared-Chat-Privacy-Test
 
 ## Wie das Spiel technisch funktioniert
 

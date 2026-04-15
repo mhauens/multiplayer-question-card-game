@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ClientSubmission, GamePhase } from '../types';
+import { ClientCommunityVotingContext, ClientSubmission, GamePhase } from '../types';
 import '../styles/cards.css';
 
 interface SubmittedAnswersProps {
@@ -7,6 +7,7 @@ interface SubmittedAnswersProps {
   isBoss: boolean;
   phase: GamePhase;
   winnerId: string | null;
+  communityVotingContext: ClientCommunityVotingContext | null;
   onReveal: (index: number) => void;
   onRevealAll: () => void;
   onPickWinner: (playerId: string) => void;
@@ -17,11 +18,15 @@ export default function SubmittedAnswers({
   isBoss,
   phase,
   winnerId,
+  communityVotingContext,
   onReveal,
   onRevealAll,
   onPickWinner,
 }: SubmittedAnswersProps) {
   const [pendingWinnerId, setPendingWinnerId] = useState<string | null>(null);
+  const voteOptions = communityVotingContext?.kind === 'JUDGE_SUBMISSIONS'
+    ? communityVotingContext.options
+    : [];
 
   useEffect(() => {
     if (phase !== GamePhase.JUDGING || !isBoss) {
@@ -60,20 +65,31 @@ export default function SubmittedAnswers({
       )}
 
       <div className="submissions-grid">
-        {submissions.map((sub, index) => (
-          <div
-            key={index}
-            className={`submission-card ${sub.revealed ? 'revealed' : 'hidden'} ${isJudging && isBoss ? 'pickable' : ''} ${isJudging && sub.playerId === pendingWinnerId ? 'is-selected' : ''} ${isRoundEnd && sub.playerId ? 'show-name' : ''} ${isRoundEnd && sub.playerId === winnerId ? 'is-round-winner' : ''}`}
-            onClick={() => {
-              if (!sub.revealed && isBoss && isRevealing) {
-                onReveal(index);
-              } else if (sub.revealed && isBoss && isJudging) {
-                setPendingWinnerId(sub.playerId);
-              }
-            }}
-          >
-            {sub.revealed ? (
-              <>
+        {submissions.map((sub, index) => {
+          const voteOption = voteOptions.find((option) => option.targetId === sub.playerId);
+
+          return (
+            <div
+              key={index}
+              className={`submission-card ${sub.revealed ? 'revealed' : 'hidden'} ${isJudging && isBoss ? 'pickable' : ''} ${isJudging && sub.playerId === pendingWinnerId ? 'is-selected' : ''} ${isRoundEnd && sub.playerId ? 'show-name' : ''} ${isRoundEnd && sub.playerId === winnerId ? 'is-round-winner' : ''} ${voteOption ? 'has-community-vote' : ''} ${voteOption?.isLeading ? 'is-vote-leading' : ''} ${voteOption?.isRecommended ? 'is-vote-recommended' : ''}`}
+              onClick={() => {
+                if (!sub.revealed && isBoss && isRevealing) {
+                  onReveal(index);
+                } else if (sub.revealed && isBoss && isJudging) {
+                  setPendingWinnerId(sub.playerId);
+                }
+              }}
+            >
+              {sub.revealed ? (
+                <>
+                  {voteOption && (
+                    <div className="community-vote-overlay submission-vote-overlay">
+                      <span className="community-vote-command">{voteOption.voteCommand}</span>
+                      <span className="community-vote-count">
+                        {voteOption.votes} Stimme{voteOption.votes === 1 ? '' : 'n'}
+                      </span>
+                    </div>
+                  )}
                 <div className="submission-cards">
                   {sub.cards.map((card, ci) => (
                     <div key={ci} className="submission-answer-text">
@@ -94,18 +110,19 @@ export default function SubmittedAnswers({
                     {sub.playerId === pendingWinnerId ? 'Ausgewählt, unten bestätigen' : 'Klicke zum Auswählen'}
                   </div>
                 )}
-              </>
-            ) : (
-              <div className="submission-hidden">
-                {isBoss && isRevealing ? (
-                  <span className="reveal-hint">Klicke zum Aufdecken</span>
-                ) : (
-                  <span>?</span>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+                </>
+              ) : (
+                <div className="submission-hidden">
+                  {isBoss && isRevealing ? (
+                    <span className="reveal-hint">Klicke zum Aufdecken</span>
+                  ) : (
+                    <span>?</span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {isJudging && isBoss && (
