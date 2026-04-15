@@ -364,6 +364,87 @@ describe('registerSocketHandlers', () => {
     });
   });
 
+  it('rejects twitch connect start while the game is paused for reconnect', async () => {
+    let connectionHandler: Handler | undefined;
+    const twitchService = {
+      createOAuthUrl: vi.fn(),
+    };
+    const io = {
+      on: vi.fn((event: string, handler: Handler) => {
+        if (event === 'connection') {
+          connectionHandler = handler;
+        }
+      }),
+      to: vi.fn(() => ({ emit: vi.fn() })),
+      sockets: { sockets: new Map() },
+    };
+    const gameState = {
+      game: { code: 'ABCD' },
+      getReconnectWindow: vi.fn(() => ({
+        players: [{ playerId: 'p2', playerName: 'Bert' }],
+        deadline: Date.now() + 30_000,
+      })),
+    };
+    const gameManager = {
+      findGameBySocketId: vi.fn(() => ({
+        player: { id: 'p2' },
+        gameState,
+      })),
+    };
+    const socket = createSocketStub();
+    const ack = vi.fn();
+
+    registerSocketHandlers(io as any, gameManager as any, twitchService as any);
+    connectionHandler?.(socket);
+
+    const handler = socket.handlers.get('twitch-connect:start');
+    expect(handler).toBeDefined();
+
+    await handler?.({ clientOrigin: 'http://localhost:5173' }, ack);
+
+    expect(twitchService.createOAuthUrl).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith({ error: 'Bert hat noch Zeit für einen Reconnect. Das Spiel ist gerade pausiert.' });
+  });
+
+  it('rejects community-vote toggles while the game is paused for reconnect', () => {
+    let connectionHandler: Handler | undefined;
+    const io = {
+      on: vi.fn((event: string, handler: Handler) => {
+        if (event === 'connection') {
+          connectionHandler = handler;
+        }
+      }),
+      to: vi.fn(() => ({ emit: vi.fn() })),
+      sockets: { sockets: new Map() },
+    };
+    const gameState = {
+      getReconnectWindow: vi.fn(() => ({
+        players: [{ playerId: 'p2', playerName: 'Bert' }],
+        deadline: Date.now() + 30_000,
+      })),
+      setCommunityVotingEnabled: vi.fn(),
+    };
+    const gameManager = {
+      findGameBySocketId: vi.fn(() => ({
+        player: { id: 'p2' },
+        gameState,
+      })),
+    };
+    const socket = createSocketStub();
+    const ack = vi.fn();
+
+    registerSocketHandlers(io as any, gameManager as any);
+    connectionHandler?.(socket);
+
+    const handler = socket.handlers.get('community-vote:set-enabled');
+    expect(handler).toBeDefined();
+
+    handler?.({ enabled: true }, ack);
+
+    expect(gameState.setCommunityVotingEnabled).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith({ error: 'Bert hat noch Zeit für einen Reconnect. Das Spiel ist gerade pausiert.' });
+  });
+
   it('does not remove an already-disconnected player again while another reconnect pause is active', () => {
     let connectionHandler: Handler | undefined;
     const io = {
@@ -441,6 +522,10 @@ describe('registerSocketHandlers', () => {
 
     let connectionHandler: Handler | undefined;
     const ioEmit = vi.fn();
+    const twitchService = {
+      cleanupPlayer: vi.fn(async () => undefined),
+      cleanupGame: vi.fn(async () => undefined),
+    };
     const io = {
       on: vi.fn((event: string, handler: Handler) => {
         if (event === 'connection') {
@@ -470,7 +555,7 @@ describe('registerSocketHandlers', () => {
       expireReconnectWindow: vi.fn(() => {
         reconnectActive = false;
         gameState.game.players = remainingPlayers;
-        return ['Chris'];
+        return [{ playerId: 'p3', playerName: 'Chris' }];
       }),
       shouldAbortForTooFewPlayers: vi.fn(() => true),
     };
@@ -480,7 +565,7 @@ describe('registerSocketHandlers', () => {
     };
     const socket = createSocketStub();
 
-    registerSocketHandlers(io as any, gameManager as any);
+    registerSocketHandlers(io as any, gameManager as any, twitchService as any);
     connectionHandler?.(socket);
 
     const disconnectHandler = socket.handlers.get('disconnect');
@@ -490,10 +575,76 @@ describe('registerSocketHandlers', () => {
     vi.advanceTimersByTime(30_000);
 
     expect(gameState.expireReconnectWindow).toHaveBeenCalled();
+    expect(twitchService.cleanupPlayer).toHaveBeenCalledWith('ABCD', 'p3');
     expect(ioEmit).toHaveBeenCalledWith('game-aborted', {
       message: 'Das Spiel wurde abgebrochen, weil nach dem Reconnect-Fenster weniger als 3 Spieler übrig sind.',
     });
     expect(gameManager.deleteGame).toHaveBeenCalledWith('ABCD');
+
+    vi.useRealTimers();
+  });
+
+  it('cleans up community voting connections for players removed after reconnect timeout', () => {
+    vi.useFakeTimers();
+
+    let connectionHandler: Handler | undefined;
+    const ioEmit = vi.fn();
+    const twitchService = {
+      cleanupPlayer: vi.fn(async () => undefined),
+      cleanupGame: vi.fn(async () => undefined),
+    };
+    const io = {
+      on: vi.fn((event: string, handler: Handler) => {
+        if (event === 'connection') {
+          connectionHandler = handler;
+        }
+      }),
+      to: vi.fn(() => ({ emit: ioEmit })),
+      sockets: { sockets: new Map() },
+    };
+
+    const reconnectWindow = {
+      players: [{ playerId: 'p3', playerName: 'Chris' }],
+      deadline: Date.now() + 30_000,
+      pausedPhase: 'SUBMITTING',
+    };
+    let reconnectActive = true;
+    const remainingPlayers = [
+      { id: 'p1', name: 'Anna', socketId: 'socket-a' },
+      { id: 'p2', name: 'Bert', socketId: 'socket-b' },
+      { id: 'p4', name: 'Dana', socketId: 'socket-c' },
+    ];
+    const disconnectedPlayer = { id: 'p3', name: 'Chris', socketId: 'socket-1' };
+    const gameState = {
+      game: { code: 'ABCD', players: [...remainingPlayers, disconnectedPlayer] },
+      startReconnectWindow: vi.fn(() => true),
+      getReconnectWindow: vi.fn(() => (reconnectActive ? reconnectWindow : null)),
+      getClientState: vi.fn(() => ({ code: 'ABCD' })),
+      expireReconnectWindow: vi.fn(() => {
+        reconnectActive = false;
+        gameState.game.players = remainingPlayers;
+        return [{ playerId: 'p3', playerName: 'Chris' }];
+      }),
+      shouldAbortForTooFewPlayers: vi.fn(() => false),
+    };
+    const gameManager = {
+      findGameBySocketId: vi.fn(() => ({ gameState, player: disconnectedPlayer })),
+      deleteGame: vi.fn(),
+    };
+    const socket = createSocketStub();
+
+    registerSocketHandlers(io as any, gameManager as any, twitchService as any);
+    connectionHandler?.(socket);
+
+    const disconnectHandler = socket.handlers.get('disconnect');
+    expect(disconnectHandler).toBeDefined();
+
+    disconnectHandler?.();
+    vi.advanceTimersByTime(30_000);
+
+    expect(twitchService.cleanupPlayer).toHaveBeenCalledWith('ABCD', 'p3');
+    expect(gameManager.deleteGame).not.toHaveBeenCalled();
+    expect(ioEmit).toHaveBeenCalledWith('player-left', { playerName: 'Chris' });
 
     vi.useRealTimers();
   });

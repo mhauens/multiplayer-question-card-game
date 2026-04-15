@@ -277,6 +277,28 @@ describe('GameState', () => {
     vi.restoreAllMocks();
   });
 
+  it('freezes community-voting tallies while the reconnect pause is active', () => {
+    const state = createState();
+    state.startGame();
+
+    state.setCommunityVotingConnection('p2', {
+      channelId: 'channel-2',
+      channelLogin: 'bert',
+      channelDisplayName: 'BertTV',
+    });
+    state.setCommunityVotingEnabled('p2', true);
+
+    expect(state.recordCommunityVote('p2', 'viewer-1', 1)).toBe(true);
+    expect(state.getClientState('p2').communityVoting.context?.options[0].votes).toBe(1);
+
+    expect(state.startReconnectWindow('p3')).toBe(true);
+    expect(state.recordCommunityVote('p2', 'viewer-2', 2)).toBe(false);
+
+    const options = state.getClientState('p2').communityVoting.context?.options || [];
+    expect(options[0].votes).toBe(1);
+    expect(options[1].votes).toBe(0);
+  });
+
   it('does not open a reconnect window while the game is still in the lobby', () => {
     const state = createState();
 
@@ -331,7 +353,7 @@ describe('GameState', () => {
     expect(state.getCurrentRound()?.phaseDeadline).toBeNull();
 
     vi.mocked(Date.now).mockReturnValue(31_000);
-    expect(state.expireReconnectWindow()).toEqual(['Chris']);
+    expect(state.expireReconnectWindow()).toEqual([{ playerId: 'p3', playerName: 'Chris' }]);
     expect(state.getPlayer('p3')).toBeUndefined();
     expect(state.game.phase).toBe(GamePhase.REVEALING);
 
@@ -347,7 +369,7 @@ describe('GameState', () => {
     expect(state.startReconnectWindow('p3')).toBe(true);
 
     vi.mocked(Date.now).mockReturnValue(31_000);
-    expect(state.expireReconnectWindow()).toEqual(['Chris']);
+    expect(state.expireReconnectWindow()).toEqual([{ playerId: 'p3', playerName: 'Chris' }]);
     expect(state.game.players).toHaveLength(2);
     expect(state.shouldAbortForTooFewPlayers()).toBe(true);
 

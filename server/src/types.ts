@@ -1,4 +1,8 @@
-import { type TrophyTarget } from '@kgs/game-rules';
+import {
+  type CommunityVotingConnectionStatus,
+  type CommunityVotingContextKind,
+  type TrophyTarget,
+} from '@kgs/game-rules';
 
 export enum GamePhase {
   LOBBY = 'LOBBY',
@@ -38,6 +42,11 @@ export interface Submission {
 }
 
 export interface ReconnectWindowPlayer {
+  playerId: string;
+  playerName: string;
+}
+
+export interface ExpiredReconnectPlayer {
   playerId: string;
   playerName: string;
 }
@@ -135,6 +144,14 @@ export interface RejoinPayload {
   playerId: string;
 }
 
+export interface TwitchConnectStartPayload {
+  clientOrigin?: string;
+}
+
+export interface CommunityVoteTogglePayload {
+  enabled: boolean;
+}
+
 export interface ClientReconnectWindowPlayer {
   playerId: string;
   playerName: string;
@@ -143,6 +160,37 @@ export interface ClientReconnectWindowPlayer {
 export interface ClientReconnectWindow {
   players: ClientReconnectWindowPlayer[];
   deadline: number;
+}
+
+export interface ClientCommunityVotingOption {
+  targetId: string;
+  voteNumber: number;
+  voteCommand: string;
+  votes: number;
+  isLeading: boolean;
+  isRecommended: boolean;
+}
+
+export interface ClientCommunityVotingContext {
+  kind: CommunityVotingContextKind;
+  roundNumber: number;
+  totalUniqueVoters: number;
+  options: ClientCommunityVotingOption[];
+}
+
+export interface ClientCommunityVotingConnection {
+  status: CommunityVotingConnectionStatus;
+  channelLogin: string | null;
+  channelDisplayName: string | null;
+  sharedChatActive: boolean;
+  lastError: string | null;
+}
+
+export interface ClientCommunityVotingState {
+  enabled: boolean;
+  privacyWarningAcknowledgedForSession: boolean;
+  connection: ClientCommunityVotingConnection;
+  context: ClientCommunityVotingContext | null;
 }
 
 // Client-facing state (sanitized - no other player hands)
@@ -169,6 +217,7 @@ export interface ClientGameState {
   gameWinnerName: string | null;
   hasPassword: boolean;
   roundRecap: RoundRecapEntry[] | null;
+  communityVoting: ClientCommunityVotingState;
 }
 
 export interface ClientPlayer {

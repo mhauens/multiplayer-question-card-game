@@ -1,5 +1,8 @@
 import {
   BOSS_PHASE_TIMER_SECONDS,
+  buildCommunityVoteCommand,
+  type CommunityVotingConnectionStatus,
+  type CommunityVotingContextKind,
   HAND_SIZE,
   MAX_INACTIVE_ROUNDS,
   MIN_PLAYERS_TO_START,
@@ -15,13 +18,42 @@ import {
   ClientGameState,
   ClientPlayer,
   ClientSubmission,
+  ClientCommunityVotingState,
+  ExpiredReconnectPlayer,
   ReconnectWindowPlayer,
 } from '../types';
 import { CardDeck } from './CardDeck';
 
+interface ServerCommunityVotingConnectionState {
+  status: CommunityVotingConnectionStatus;
+  channelId: string | null;
+  channelLogin: string | null;
+  channelDisplayName: string | null;
+  sharedChatActive: boolean;
+  lastError: string | null;
+}
+
+interface ServerCommunityVotingState {
+  enabled: boolean;
+  privacyWarningAcknowledgedForSession: boolean;
+  connection: ServerCommunityVotingConnectionState;
+  activeContextKey: string | null;
+  votesByChatterId: Map<string, string>;
+  votesByTargetId: Map<string, number>;
+}
+
+interface CommunityVotingContextRuntime {
+  key: string;
+  kind: CommunityVotingContextKind;
+  roundNumber: number;
+  recommendedCount: number;
+  optionTargetIds: string[];
+}
+
 export class GameState {
   game: Game;
   private cardDeck: CardDeck;
+  private communityVotingByPlayerId = new Map<string, ServerCommunityVotingState>();
 
   constructor(game: Game, cardDeck: CardDeck) {
     this.game = game;
@@ -119,7 +151,7 @@ export class GameState {
     return true;
   }
 
-  expireReconnectWindow(): string[] {
+  expireReconnectWindow(): ExpiredReconnectPlayer[] {
     const reconnectWindow = this.game.reconnectWindow;
     if (!reconnectWindow) {
       return [];
@@ -141,12 +173,17 @@ export class GameState {
       this.removePlayer(expiredBoss.playerId);
     }
 
-    return expiredPlayers.map((player) => player.playerName);
+    return expiredPlayers.map((player) => ({
+      playerId: player.playerId,
+      playerName: player.playerName,
+    }));
   }
 
   removePlayer(playerId: string): void {
     const playerIndex = this.game.players.findIndex((currentPlayer) => currentPlayer.id === playerId);
     if (playerIndex < 0) return;
+
+    this.clearCommunityVoting(playerId);
 
     const player = this.game.players[playerIndex];
     const currentRound = this.getCurrentRound();
@@ -203,6 +240,270 @@ export class GameState {
     const round = this.getCurrentRound();
     if (!round) return undefined;
     return this.getPlayer(round.bossId);
+  }
+
+  private getDefaultCommunityVotingConnection(): ServerCommunityVotingConnectionState {
+    return {
+      status: 'disconnected',
+      channelId: null,
+      channelLogin: null,
+      channelDisplayName: null,
+      sharedChatActive: false,
+      lastError: null,
+    };
+  }
+
+  private getOrCreateCommunityVotingState(playerId: string): ServerCommunityVotingState {
+    const existingState = this.communityVotingByPlayerId.get(playerId);
+    if (existingState) {
+      return existingState;
+    }
+
+    const nextState: ServerCommunityVotingState = {
+      enabled: false,
+      privacyWarningAcknowledgedForSession: false,
+      connection: this.getDefaultCommunityVotingConnection(),
+      activeContextKey: null,
+      votesByChatterId: new Map(),
+      votesByTargetId: new Map(),
+    };
+
+    this.communityVotingByPlayerId.set(playerId, nextState);
+    return nextState;
+  }
+
+  private resetCommunityVotingContext(state: ServerCommunityVotingState, nextContextKey: string | null): void {
+    state.activeContextKey = nextContextKey;
+    state.votesByChatterId.clear();
+    state.votesByTargetId.clear();
+  }
+
+  private getRecommendedTargetIds(
+    runtime: CommunityVotingContextRuntime,
+    voteCountsByTargetId: Map<string, number>,
+  ): Set<string> {
+    const rankedTargets = runtime.optionTargetIds
+      .map((targetId, index) => ({
+        targetId,
+        votes: voteCountsByTargetId.get(targetId) || 0,
+        voteNumber: index + 1,
+      }))
+      .filter((option) => option.votes > 0)
+      .sort((left, right) => right.votes - left.votes || left.voteNumber - right.voteNumber);
+
+    return new Set(
+      rankedTargets
+        .slice(0, runtime.recommendedCount)
+        .map((option) => option.targetId),
+    );
+  }
+
+  private getCommunityVotingContextRuntime(playerId: string): CommunityVotingContextRuntime | null {
+    const player = this.getPlayer(playerId);
+    const round = this.getCurrentRound();
+    if (!player || !round) {
+      return null;
+    }
+
+    const questionCard = this.cardDeck.getCard(round.questionCardId);
+    const hasSubmitted = round.submissions.some((submission) => submission.playerId === playerId);
+
+    if (
+      this.game.phase === GamePhase.SUBMITTING
+      && round.bossId !== playerId
+      && player.isConnected
+      && !player.swappedThisRound
+      && !hasSubmitted
+      && player.hand.length > 0
+    ) {
+      return {
+        key: `SUBMIT_HAND:${round.roundNumber}:${player.hand.join('|')}`,
+        kind: 'SUBMIT_HAND',
+        roundNumber: round.roundNumber,
+        recommendedCount: Math.max(1, questionCard?.blanks || 1),
+        optionTargetIds: [...player.hand],
+      };
+    }
+
+    if (
+      this.game.phase === GamePhase.JUDGING
+      && round.bossId === playerId
+      && round.submissions.length > 0
+    ) {
+      return {
+        key: `JUDGE_SUBMISSIONS:${round.roundNumber}:${round.submissions.map((submission) => submission.playerId).join('|')}`,
+        kind: 'JUDGE_SUBMISSIONS',
+        roundNumber: round.roundNumber,
+        recommendedCount: 1,
+        optionTargetIds: round.submissions.map((submission) => submission.playerId),
+      };
+    }
+
+    return null;
+  }
+
+  private syncCommunityVotingContext(playerId: string): {
+    state: ServerCommunityVotingState;
+    runtime: CommunityVotingContextRuntime | null;
+  } {
+    const state = this.getOrCreateCommunityVotingState(playerId);
+    const runtime = this.getCommunityVotingContextRuntime(playerId);
+    const nextContextKey = runtime?.key || null;
+
+    if (state.activeContextKey !== nextContextKey) {
+      this.resetCommunityVotingContext(state, nextContextKey);
+    }
+
+    return { state, runtime };
+  }
+
+  setCommunityVotingConnection(
+    playerId: string,
+    connection: {
+      channelId: string;
+      channelLogin: string;
+      channelDisplayName: string;
+    },
+  ): void {
+    const state = this.getOrCreateCommunityVotingState(playerId);
+    state.enabled = true;
+    state.connection = {
+      status: 'connected',
+      channelId: connection.channelId,
+      channelLogin: connection.channelLogin,
+      channelDisplayName: connection.channelDisplayName,
+      sharedChatActive: false,
+      lastError: null,
+    };
+    this.resetCommunityVotingContext(state, null);
+  }
+
+  setCommunityVotingSharedChatActive(playerId: string, sharedChatActive: boolean): void {
+    const state = this.getOrCreateCommunityVotingState(playerId);
+    state.connection.sharedChatActive = sharedChatActive;
+  }
+
+  setCommunityVotingError(playerId: string, message: string): void {
+    const state = this.getOrCreateCommunityVotingState(playerId);
+    state.connection = {
+      ...state.connection,
+      status: 'error',
+      sharedChatActive: false,
+      lastError: message,
+    };
+    state.enabled = false;
+    this.resetCommunityVotingContext(state, null);
+  }
+
+  clearCommunityVoting(playerId: string): void {
+    this.communityVotingByPlayerId.delete(playerId);
+  }
+
+  getCommunityVotingChannelId(playerId: string): string | null {
+    return this.communityVotingByPlayerId.get(playerId)?.connection.channelId || null;
+  }
+
+  setCommunityVotingEnabled(playerId: string, enabled: boolean): boolean {
+    const state = this.getOrCreateCommunityVotingState(playerId);
+    if (state.connection.status !== 'connected') {
+      return false;
+    }
+
+    state.enabled = enabled;
+    if (!enabled) {
+      this.resetCommunityVotingContext(state, null);
+    } else {
+      this.syncCommunityVotingContext(playerId);
+    }
+
+    return true;
+  }
+
+  recordCommunityVote(playerId: string, chatterId: string, voteNumber: number): boolean {
+    if (this.isReconnectPaused()) {
+      return false;
+    }
+
+    const { state, runtime } = this.syncCommunityVotingContext(playerId);
+    if (!runtime || !state.enabled || state.connection.status !== 'connected') {
+      return false;
+    }
+
+    const targetId = runtime.optionTargetIds[voteNumber - 1];
+    if (!targetId) {
+      return false;
+    }
+
+    const previousTargetId = state.votesByChatterId.get(chatterId);
+    if (previousTargetId === targetId) {
+      return false;
+    }
+
+    if (previousTargetId) {
+      const previousCount = state.votesByTargetId.get(previousTargetId) || 0;
+      if (previousCount <= 1) {
+        state.votesByTargetId.delete(previousTargetId);
+      } else {
+        state.votesByTargetId.set(previousTargetId, previousCount - 1);
+      }
+    }
+
+    state.votesByChatterId.set(chatterId, targetId);
+    state.votesByTargetId.set(targetId, (state.votesByTargetId.get(targetId) || 0) + 1);
+    return true;
+  }
+
+  getClientCommunityVotingState(forPlayerId: string): ClientCommunityVotingState {
+    const { state, runtime } = this.syncCommunityVotingContext(forPlayerId);
+    const connection = state.connection;
+
+    if (!runtime || !state.enabled || connection.status !== 'connected') {
+      return {
+        enabled: state.enabled,
+        privacyWarningAcknowledgedForSession: state.privacyWarningAcknowledgedForSession,
+        connection: {
+          status: connection.status,
+          channelLogin: connection.channelLogin,
+          channelDisplayName: connection.channelDisplayName,
+          sharedChatActive: connection.sharedChatActive,
+          lastError: connection.lastError,
+        },
+        context: null,
+      };
+    }
+
+    const optionsWithVotes = runtime.optionTargetIds.map((targetId, index) => ({
+      targetId,
+      voteNumber: index + 1,
+      votes: state.votesByTargetId.get(targetId) || 0,
+    }));
+    const highestVoteCount = optionsWithVotes.reduce((highest, option) => Math.max(highest, option.votes), 0);
+    const recommendedTargetIds = this.getRecommendedTargetIds(runtime, state.votesByTargetId);
+
+    return {
+      enabled: state.enabled,
+      privacyWarningAcknowledgedForSession: state.privacyWarningAcknowledgedForSession,
+      connection: {
+        status: connection.status,
+        channelLogin: connection.channelLogin,
+        channelDisplayName: connection.channelDisplayName,
+        sharedChatActive: connection.sharedChatActive,
+        lastError: connection.lastError,
+      },
+      context: {
+        kind: runtime.kind,
+        roundNumber: runtime.roundNumber,
+        totalUniqueVoters: state.votesByChatterId.size,
+        options: optionsWithVotes.map((option) => ({
+          targetId: option.targetId,
+          voteNumber: option.voteNumber,
+          voteCommand: buildCommunityVoteCommand(option.voteNumber),
+          votes: option.votes,
+          isLeading: highestVoteCount > 0 && option.votes === highestVoteCount,
+          isRecommended: recommendedTargetIds.has(option.targetId),
+        })),
+      },
+    };
   }
 
   private getLatestResolvedRound(): Round | undefined {
@@ -549,8 +850,14 @@ export class GameState {
     const removedPlayers = this.game.players
       .filter((player) => !player.isConnected)
       .map((player) => player.name);
+    const removedPlayerIds = this.game.players
+      .filter((player) => !player.isConnected)
+      .map((player) => player.id);
 
     this.game.players = this.game.players.filter((player) => player.isConnected);
+    for (const playerId of removedPlayerIds) {
+      this.clearCommunityVoting(playerId);
+    }
 
     for (const player of this.game.players) {
       player.hand = [];
@@ -790,6 +1097,7 @@ export class GameState {
       gameWinnerName: gameWinner?.name || null,
       hasPassword: this.game.passwordHash !== null,
       roundRecap: this.game.phase === GamePhase.GAME_OVER ? this.getRoundRecap() : null,
+      communityVoting: this.getClientCommunityVotingState(forPlayerId),
     };
   }
 

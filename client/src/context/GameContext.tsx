@@ -1,15 +1,53 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { type TrophyTarget } from '@kgs/game-rules';
+import { type CommunityVotingConnectionStatus, type TrophyTarget } from '@kgs/game-rules';
 import { CardCatalogOption, ClientGameState } from '../types';
 import { useSocket } from '../hooks/useSocket';
 import { applyVariantTheme } from '../theme';
+import { resolveServerUrl } from '../serverUrl';
 
 const RECONNECT_STORAGE_KEY = 'kgds-reconnect-session';
+const TWITCH_PRIVACY_WARNING_MESSAGE = 'Twitch-Login nicht im Stream zeigen.\n\nBitte stelle sicher, dass Login-Popup, Browserfenster und Bildschirmfreigabe gerade nicht live sichtbar sind.';
+const TWITCH_POPUP_FEATURES = 'popup=yes,width=640,height=760,menubar=no,toolbar=no,location=yes,resizable=yes,scrollbars=yes,status=no';
+
+interface TwitchOAuthMessage {
+  type?: string;
+  status?: 'success' | 'error';
+  message?: string;
+}
 
 interface StoredReconnectSession {
   gameCode: string;
   playerId: string;
   playerName?: string;
+}
+
+type LocalTwitchConnectionStatus = Extract<CommunityVotingConnectionStatus, 'warning_required' | 'connecting'> | null;
+
+function applyLocalCommunityVotingState(
+  state: ClientGameState | null,
+  privacyWarningAcknowledgedForSession: boolean,
+  localConnectionStatus: LocalTwitchConnectionStatus,
+): ClientGameState | null {
+  if (!state) {
+    return null;
+  }
+
+  const serverConnectionStatus = state.communityVoting.connection.status;
+  const effectiveConnectionStatus = serverConnectionStatus === 'connected' || serverConnectionStatus === 'error'
+    ? serverConnectionStatus
+    : localConnectionStatus || serverConnectionStatus;
+
+  return {
+    ...state,
+    communityVoting: {
+      ...state.communityVoting,
+      privacyWarningAcknowledgedForSession,
+      connection: {
+        ...state.communityVoting.connection,
+        status: effectiveConnectionStatus,
+      },
+    },
+  };
 }
 
 function shouldAttemptSessionRestore(): boolean {
@@ -46,6 +84,7 @@ interface GameContextType {
   isRestoringSession: boolean;
   error: string | null;
   toast: string | null;
+  isTwitchConnecting: boolean;
   createGame: (playerName: string, maxTrophies: TrophyTarget, variant: string, extensions: string[], password?: string) => Promise<string | null>;
   joinGame: (gameCode: string, playerName: string, password?: string) => Promise<string | null>;
   startGame: () => Promise<void>;
@@ -58,6 +97,9 @@ interface GameContextType {
   kickPlayer: (playerId: string) => Promise<void>;
   nextRound: () => Promise<void>;
   leaveGame: () => Promise<void>;
+  connectTwitchCommunity: () => Promise<void>;
+  disconnectTwitchCommunity: () => Promise<void>;
+  setCommunityVotingEnabled: (enabled: boolean) => Promise<void>;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -77,6 +119,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [isTwitchConnecting, setIsTwitchConnecting] = useState(false);
+  const [privacyWarningAcknowledgedForSession, setPrivacyWarningAcknowledgedForSession] = useState(false);
+  const [localTwitchConnectionStatus, setLocalTwitchConnectionStatus] = useState<LocalTwitchConnectionStatus>(null);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -95,12 +140,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [emit]);
 
+  const effectiveGameState = applyLocalCommunityVotingState(
+    gameState,
+    privacyWarningAcknowledgedForSession,
+    localTwitchConnectionStatus,
+  );
+
   useEffect(() => {
     applyVariantTheme(gameState?.activeVariant);
   }, [gameState?.activeVariant]);
 
   useEffect(() => {
-    if (!gameState || gameState.phase === 'LOBBY') {
+    if (!effectiveGameState || effectiveGameState.phase === 'LOBBY') {
       return;
     }
 
@@ -114,7 +165,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [gameState]);
+  }, [effectiveGameState]);
 
   useEffect(() => {
     const unsub1 = on('game-state', (state: ClientGameState) => {
@@ -182,6 +233,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       clearStoredSession();
       setGameState(null);
       setIsRestoringSession(false);
+      setPrivacyWarningAcknowledgedForSession(false);
+      setLocalTwitchConnectionStatus(null);
       showError(data?.message || 'Du wurdest aus der Lobby entfernt.');
     });
 
@@ -189,6 +242,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       clearStoredSession();
       setGameState(null);
       setIsRestoringSession(false);
+      setPrivacyWarningAcknowledgedForSession(false);
+      setLocalTwitchConnectionStatus(null);
       showError(data?.message || 'Das Spiel wurde abgebrochen.');
     });
 
@@ -274,6 +329,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       showError(response.error);
       return null;
     }
+    setPrivacyWarningAcknowledgedForSession(false);
+    setLocalTwitchConnectionStatus(null);
     setGameState(response.state);
     saveStoredSession({
       gameCode: response.gameCode,
@@ -302,6 +359,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (!rejoinResponse?.error && rejoinResponse?.state) {
+          setLocalTwitchConnectionStatus(null);
           setGameState(rejoinResponse.state);
           saveStoredSession({
             gameCode: rejoinResponse.gameCode,
@@ -327,6 +385,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       showError(response.error);
       return null;
     }
+    setPrivacyWarningAcknowledgedForSession(false);
+    setLocalTwitchConnectionStatus(null);
     setGameState(response.state);
     saveStoredSession({
       gameCode: response.gameCode,
@@ -391,16 +451,133 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     clearStoredSession();
     setGameState(null);
     setIsRestoringSession(false);
+    setPrivacyWarningAcknowledgedForSession(false);
+    setLocalTwitchConnectionStatus(null);
   }, [emit, gameState]);
+
+  const connectTwitchCommunity = useCallback(async () => {
+    setLocalTwitchConnectionStatus('warning_required');
+    const confirmed = window.confirm(TWITCH_PRIVACY_WARNING_MESSAGE);
+    if (!confirmed) {
+      setLocalTwitchConnectionStatus(null);
+      return;
+    }
+
+    setPrivacyWarningAcknowledgedForSession(true);
+    setLocalTwitchConnectionStatus('connecting');
+
+    const popup = window.open('', 'kgds-twitch-oauth', TWITCH_POPUP_FEATURES);
+    if (!popup) {
+      setLocalTwitchConnectionStatus(null);
+      showError('Das Twitch-Popup wurde blockiert. Bitte erlaube Popups fuer diese Seite.');
+      return;
+    }
+
+    setIsTwitchConnecting(true);
+
+    try {
+      const expectedServerOrigin = (() => {
+        const serverUrl = resolveServerUrl();
+        if (!serverUrl) {
+          return window.location.origin;
+        }
+
+        return new URL(serverUrl, window.location.origin).origin;
+      })();
+
+      const response = await emit('twitch-connect:start', { clientOrigin: window.location.origin });
+      if (response?.error || !response?.url) {
+        popup.close();
+        setLocalTwitchConnectionStatus(null);
+        showError(response?.error || 'Twitch-Verbindung konnte nicht gestartet werden.');
+        return;
+      }
+
+      if (popup.closed) {
+        setLocalTwitchConnectionStatus(null);
+        showError('Das Twitch-Fenster wurde vor dem Start geschlossen.');
+        return;
+      }
+
+      popup.location.replace(response.url as string);
+
+      await new Promise<void>((resolve) => {
+        const cleanup = () => {
+          window.removeEventListener('message', handleMessage);
+          window.clearInterval(closeWatcher);
+          setIsTwitchConnecting(false);
+          setLocalTwitchConnectionStatus(null);
+        };
+
+        const handleMessage = (event: MessageEvent<TwitchOAuthMessage>) => {
+          if (event.origin !== expectedServerOrigin) {
+            return;
+          }
+
+          if (event.data?.type !== 'twitch-oauth-complete') {
+            return;
+          }
+
+          cleanup();
+          if (event.data.status === 'error' && event.data.message) {
+            showError(event.data.message);
+          } else if (event.data.status === 'success') {
+            showToast('Twitch wurde verbunden.');
+          }
+
+          void syncGameState();
+          resolve();
+        };
+
+        const closeWatcher = window.setInterval(() => {
+          if (!popup.closed) {
+            return;
+          }
+
+          cleanup();
+          void syncGameState();
+          resolve();
+        }, 500);
+
+        window.addEventListener('message', handleMessage);
+      });
+    } finally {
+      setIsTwitchConnecting(false);
+    }
+  }, [emit, showError, showToast, syncGameState]);
+
+  const disconnectTwitchCommunity = useCallback(async () => {
+    const response = await emit('twitch-connect:disconnect');
+    if (response?.error) {
+      showError(response.error);
+      return;
+    }
+
+    setLocalTwitchConnectionStatus(null);
+    showToast('Twitch-Verbindung getrennt.');
+    await syncGameState();
+  }, [emit, showError, showToast, syncGameState]);
+
+  const setCommunityVotingEnabled = useCallback(async (enabled: boolean) => {
+    const response = await emit('community-vote:set-enabled', { enabled });
+    if (response?.error) {
+      showError(response.error);
+      return;
+    }
+
+    showToast(enabled ? 'Community-Voting aktiviert.' : 'Community-Voting deaktiviert.');
+    await syncGameState();
+  }, [emit, showError, showToast, syncGameState]);
 
   return (
     <GameContext.Provider value={{
-      gameState,
+      gameState: effectiveGameState,
       availableVariants,
       isConnected,
       isRestoringSession,
       error,
       toast,
+      isTwitchConnecting,
       createGame,
       joinGame,
       startGame,
@@ -413,6 +590,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       kickPlayer,
       nextRound,
       leaveGame,
+      connectTwitchCommunity,
+      disconnectTwitchCommunity,
+      setCommunityVotingEnabled,
     }}>
       {children}
     </GameContext.Provider>
