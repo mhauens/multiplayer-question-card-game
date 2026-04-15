@@ -175,18 +175,21 @@ export class TwitchService {
     const code = params.code?.trim();
 
     if (!state || !code) {
+      console.warn('[twitch-oauth] Callback rejected because code or state was missing.');
       return { ok: false, html: this.renderPopupHtml(clientOrigin, false, 'Twitch-Verbindung konnte nicht abgeschlossen werden.') };
     }
 
     const oauthState = this.oauthStates.get(state);
     this.oauthStates.delete(state);
     if (!oauthState || oauthState.expiresAt < Date.now()) {
+      console.warn('[twitch-oauth] Callback rejected because the oauth state was missing or expired.');
       return { ok: false, html: this.renderPopupHtml(clientOrigin, false, 'Die Twitch-Anfrage ist abgelaufen. Bitte starte die Verbindung erneut.') };
     }
 
     const gameState = this.gameManager.getGame(oauthState.gameCode);
     const player = gameState?.getPlayer(oauthState.playerId);
     if (!gameState || !player) {
+      console.warn('[twitch-oauth] Callback rejected because the game or player no longer existed.');
       return {
         ok: false,
         html: this.renderPopupHtml(oauthState.clientOrigin, false, 'Die Partie oder der Spieler wurde nicht mehr gefunden.'),
@@ -229,7 +232,9 @@ export class TwitchService {
         ok: true,
         html: this.renderPopupHtml(oauthState.clientOrigin, true, 'Twitch wurde verbunden. Du kannst das Fenster jetzt schliessen.'),
       };
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[twitch-oauth] Callback failed: ${message}`);
       gameState.setCommunityVotingError(oauthState.playerId, 'Twitch-Verbindung konnte nicht hergestellt werden.');
       this.emitPlayerState(oauthState.gameCode, oauthState.playerId);
       return {
