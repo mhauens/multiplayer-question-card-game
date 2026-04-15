@@ -31,7 +31,7 @@ const answerCards: Card[] = Array.from({ length: 40 }, (_, index) => ({
 const cardMap = new Map<string, Card>([
   [questionCard.id, questionCard],
   [multiBlankQuestionCard.id, multiBlankQuestionCard],
-  ...answerCards.map((card) => [card.id, card]),
+  ...answerCards.map((card): [string, Card] => [card.id, card]),
 ]);
 
 function createPlayer(id: string, name: string, isHost = false): Player {
@@ -69,19 +69,19 @@ function createState(questionId = questionCard.id): GameState {
     passwordHash: null,
   };
 
-  const deck = {
+  const deck: Pick<CardDeck, 'getCard' | 'createDecks'> = {
     getCard(id: string) {
       return cardMap.get(id);
     },
-    createDecks() {
+    createDecks(_variant: string, _extensions: string[]) {
       return {
         questionDeck: [questionId],
         answerDeck: answerCards.map((card) => card.id),
       };
     },
-  } as CardDeck;
+  };
 
-  return new GameState(game, deck);
+  return new GameState(game, deck as unknown as CardDeck);
 }
 
 describe('community voting command parsing', () => {
