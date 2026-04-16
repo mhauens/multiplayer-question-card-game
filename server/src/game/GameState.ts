@@ -19,6 +19,9 @@ import {
   ClientPlayer,
   ClientSubmission,
   ClientCommunityVotingState,
+  ClientEndGameStats,
+  ClientEndGameHighlight,
+  ClientPlayerEndGameStats,
   ExpiredReconnectPlayer,
   ReconnectWindowPlayer,
 } from '../types';
@@ -50,10 +53,30 @@ interface CommunityVotingContextRuntime {
   optionTargetIds: string[];
 }
 
+interface PlayerMatchStats {
+  bossRounds: number;
+  submittedRounds: number;
+  swappedRounds: number;
+  currentWinStreak: number;
+  longestWinStreak: number;
+}
+
+function createInitialPlayerMatchStats(): PlayerMatchStats {
+  return {
+    bossRounds: 0,
+    submittedRounds: 0,
+    swappedRounds: 0,
+    currentWinStreak: 0,
+    longestWinStreak: 0,
+  };
+}
+
 export class GameState {
   game: Game;
   private cardDeck: CardDeck;
   private communityVotingByPlayerId = new Map<string, ServerCommunityVotingState>();
+  private matchStatsByPlayerId = new Map<string, PlayerMatchStats>();
+  private frozenEndGameStats: ClientEndGameStats | null = null;
 
   constructor(game: Game, cardDeck: CardDeck) {
     this.game = game;
@@ -62,6 +85,7 @@ export class GameState {
 
   addPlayer(player: Player): void {
     this.game.players.push(player);
+    this.matchStatsByPlayerId.set(player.id, createInitialPlayerMatchStats());
   }
 
   getReconnectWindow() {
@@ -198,6 +222,7 @@ export class GameState {
     }
 
     this.game.players = this.game.players.filter(p => p.id !== playerId);
+    this.matchStatsByPlayerId.delete(playerId);
 
     if (player.isHost && this.game.players.length > 0) {
       this.game.players[0].isHost = true;
@@ -240,6 +265,110 @@ export class GameState {
     const round = this.getCurrentRound();
     if (!round) return undefined;
     return this.getPlayer(round.bossId);
+  }
+
+  private getOrCreateMatchStats(playerId: string): PlayerMatchStats {
+    const existingStats = this.matchStatsByPlayerId.get(playerId);
+    if (existingStats) {
+      return existingStats;
+    }
+
+    const nextStats = createInitialPlayerMatchStats();
+    this.matchStatsByPlayerId.set(playerId, nextStats);
+    return nextStats;
+  }
+
+  private resetMatchStatsForCurrentPlayers(): void {
+    this.matchStatsByPlayerId.clear();
+    for (const player of this.game.players) {
+      this.matchStatsByPlayerId.set(player.id, createInitialPlayerMatchStats());
+    }
+  }
+
+  private buildClientEndGameStats(): ClientEndGameStats {
+    const rankedPlayers = [...this.game.players].sort((left, right) => {
+      if (right.trophies !== left.trophies) {
+        return right.trophies - left.trophies;
+      }
+
+      return left.name.localeCompare(right.name, undefined, { sensitivity: 'base' });
+    });
+
+    const players: ClientPlayerEndGameStats[] = rankedPlayers.map((player) => {
+      const stats = this.getOrCreateMatchStats(player.id);
+
+      return {
+        playerId: player.id,
+        playerName: player.name,
+        trophies: player.trophies,
+        bossRounds: stats.bossRounds,
+        submittedRounds: stats.submittedRounds,
+        swappedRounds: stats.swappedRounds,
+        currentWinStreak: stats.currentWinStreak,
+        longestWinStreak: stats.longestWinStreak,
+      };
+    });
+
+    const highlightDefinitions: Array<{
+      key: ClientEndGameHighlight['key'];
+      title: string;
+      selectValue: (playerStats: ClientPlayerEndGameStats) => number;
+    }> = [
+      {
+        key: 'longest-win-streak',
+        title: 'Längste Siegesserie',
+        selectValue: (playerStats) => playerStats.longestWinStreak,
+      },
+      {
+        key: 'most-boss-rounds',
+        title: 'Meiste Bossrunden',
+        selectValue: (playerStats) => playerStats.bossRounds,
+      },
+      {
+        key: 'most-submitted-rounds',
+        title: 'Meiste Abgaben',
+        selectValue: (playerStats) => playerStats.submittedRounds,
+      },
+      {
+        key: 'most-swapped-rounds',
+        title: 'Meiste Handtausche',
+        selectValue: (playerStats) => playerStats.swappedRounds,
+      },
+    ];
+
+    const highlights: ClientEndGameHighlight[] = highlightDefinitions
+      .map((definition) => {
+        const value = players.reduce((highest, playerStats) => Math.max(highest, definition.selectValue(playerStats)), 0);
+        if (value <= 0) {
+          return null;
+        }
+
+        return {
+          key: definition.key,
+          title: definition.title,
+          value,
+          leaders: players.filter((playerStats) => definition.selectValue(playerStats) === value),
+        };
+      })
+      .filter((highlight): highlight is ClientEndGameHighlight => highlight !== null);
+
+    return {
+      totalRounds: this.game.rounds.length,
+      players,
+      highlights,
+    };
+  }
+
+  private freezeEndGameStats(): void {
+    if (this.frozenEndGameStats) {
+      return;
+    }
+
+    this.frozenEndGameStats = this.buildClientEndGameStats();
+  }
+
+  private clearFrozenEndGameStats(): void {
+    this.frozenEndGameStats = null;
   }
 
   private getDefaultCommunityVotingConnection(): ServerCommunityVotingConnectionState {
@@ -535,6 +664,7 @@ export class GameState {
   startGame(): void {
     if (!this.canStart()) return;
 
+    this.clearFrozenEndGameStats();
     this.game.phase = GamePhase.READING;
 
     // Deal cards to all players
@@ -558,6 +688,7 @@ export class GameState {
 
     if (this.game.questionDeck.length === 0) {
       this.game.phase = GamePhase.GAME_OVER;
+      this.freezeEndGameStats();
       return;
     }
 
@@ -577,6 +708,11 @@ export class GameState {
     this.game.rounds.push(round);
     this.game.currentRound = roundNumber;
     this.game.phase = GamePhase.SUBMITTING;
+
+    const boss = this.getPlayer(bossId);
+    if (boss) {
+      this.getOrCreateMatchStats(boss.id).bossRounds += 1;
+    }
 
     // Reset swap flag for all players
     for (const player of this.game.players) {
@@ -641,6 +777,7 @@ export class GameState {
     }
 
     this.game.phase = GamePhase.GAME_OVER;
+    this.freezeEndGameStats();
   }
 
   private restorePausedDeadline(remainingPhaseMs: number | null): void {
@@ -681,6 +818,7 @@ export class GameState {
 
     const player = this.getPlayer(playerId);
     if (!player) return false;
+    if (player.swappedThisRound) return false;
 
     // Check player hasn't already submitted
     if (round.submissions.some(s => s.playerId === playerId)) return false;
@@ -705,6 +843,8 @@ export class GameState {
       cardIds,
       revealed: false,
     });
+
+    this.getOrCreateMatchStats(playerId).submittedRounds += 1;
 
     this.maybeAdvanceSubmittingPhase(round);
 
@@ -739,6 +879,8 @@ export class GameState {
     // Draw new cards
     this.dealCards(player, HAND_SIZE);
     player.swappedThisRound = true;
+
+    this.getOrCreateMatchStats(playerId).swappedRounds += 1;
 
     this.maybeAdvanceSubmittingPhase(round);
 
@@ -787,11 +929,22 @@ export class GameState {
     if (winner) {
       winner.trophies += 1;
 
+      for (const player of this.game.players) {
+        const stats = this.getOrCreateMatchStats(player.id);
+        if (player.id === winnerId) {
+          stats.currentWinStreak += 1;
+          stats.longestWinStreak = Math.max(stats.longestWinStreak, stats.currentWinStreak);
+        } else {
+          stats.currentWinStreak = 0;
+        }
+      }
+
       // Check win condition
       if (winner.trophies >= this.game.maxTrophies) {
         this.game.phase = GamePhase.GAME_OVER;
         round.phase = GamePhase.GAME_OVER;
         round.phaseDeadline = null;
+        this.freezeEndGameStats();
         return true;
       }
     }
@@ -871,6 +1024,8 @@ export class GameState {
       this.clearCommunityVoting(playerId);
     }
 
+    this.resetMatchStatsForCurrentPlayers();
+
     for (const player of this.game.players) {
       player.hand = [];
       player.trophies = 0;
@@ -892,6 +1047,7 @@ export class GameState {
     this.game.questionDeck = questionDeck;
     this.game.answerDeck = answerDeck;
     this.game.phase = GamePhase.LOBBY;
+    this.clearFrozenEndGameStats();
 
     if (this.canStart()) {
       this.startGame();
@@ -1078,6 +1234,15 @@ export class GameState {
       });
     }
 
+    if (this.game.phase === GamePhase.GAME_OVER && !this.frozenEndGameStats) {
+      this.freezeEndGameStats();
+    }
+
+    const endGameStats = this.game.phase === GamePhase.GAME_OVER
+      ? this.frozenEndGameStats
+      : null;
+    const frozenWinner = endGameStats?.players[0] || null;
+
     return {
       code: this.game.code,
       phase: this.game.phase,
@@ -1105,10 +1270,11 @@ export class GameState {
       winnerName: this.getWinnerNameForRound(round),
       lastRoundWinnerId: lastCompletedRound?.winnerId || null,
       lastRoundWinnerName: this.getWinnerNameForRound(lastCompletedRound),
-      gameWinnerId: gameWinner?.id || null,
-      gameWinnerName: gameWinner?.name || null,
+      gameWinnerId: frozenWinner?.playerId || gameWinner?.id || null,
+      gameWinnerName: frozenWinner?.playerName || gameWinner?.name || null,
       hasPassword: this.game.passwordHash !== null,
       roundRecap: this.game.phase === GamePhase.GAME_OVER ? this.getRoundRecap() : null,
+      endGameStats,
       communityVoting: this.getClientCommunityVotingState(forPlayerId),
     };
   }

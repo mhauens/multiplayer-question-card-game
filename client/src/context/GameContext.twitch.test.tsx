@@ -73,6 +73,7 @@ function createGameState(partial?: Partial<ClientGameState>): ClientGameState {
     gameWinnerName: null,
     hasPassword: false,
     roundRecap: null,
+    endGameStats: null,
     communityVoting: {
       enabled: false,
       privacyWarningAcknowledgedForSession: false,

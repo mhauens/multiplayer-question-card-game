@@ -1,4 +1,4 @@
-import { ClientPlayer, RoundRecapEntry } from '../types';
+import { ClientEndGameStats, RoundRecapEntry } from '../types';
 
 function renderQuestionWithAnswers(questionText: string, winningCards: { text: string }[]): (string | React.ReactElement)[] {
   const parts = questionText.split('________');
@@ -22,18 +22,17 @@ function renderQuestionWithAnswers(questionText: string, winningCards: { text: s
 }
 
 interface GameOverProps {
-  players: ClientPlayer[];
   winnerId: string | null;
   winnerName: string | null;
   myId: string;
   isHost: boolean;
+  endGameStats: ClientEndGameStats;
   roundRecap: RoundRecapEntry[] | null;
   onRematch: () => void;
   onLeave: () => void;
 }
 
-export default function GameOver({ players, winnerId, winnerName, myId, isHost, roundRecap, onRematch, onLeave }: GameOverProps) {
-  const sorted = [...players].sort((a, b) => b.trophies - a.trophies);
+export default function GameOver({ winnerId, winnerName, myId, isHost, endGameStats, roundRecap, onRematch, onLeave }: GameOverProps) {
   const isWinner = winnerId === myId;
 
   return (
@@ -58,14 +57,62 @@ export default function GameOver({ players, winnerId, winnerName, myId, isHost, 
         <div className="final-scores">
           <h3>Endstand</h3>
           <ol className="final-scores-list">
-            {sorted.map((p, i) => (
-              <li key={p.id} className={`final-score-item ${p.id === myId ? 'is-me' : ''}`}>
+            {endGameStats.players.map((p, i) => (
+              <li key={p.playerId} className={`final-score-item ${p.playerId === myId ? 'is-me' : ''}`}>
                 <span className="final-rank">{i + 1}.</span>
-                <span className="final-name">{p.name}{p.id === myId ? ' (Du)' : ''}</span>
+                <span className="final-name">{p.playerName}{p.playerId === myId ? ' (Du)' : ''}</span>
                 <span className="final-trophies">{p.trophies} 🏆</span>
               </li>
             ))}
           </ol>
+        </div>
+
+        <div className="match-summary">
+          <h3>Match-Zusammenfassung</h3>
+
+          <div className="match-summary-total">
+            <span className="match-summary-label">Gesamtrunden</span>
+            <strong>{endGameStats.totalRounds}</strong>
+          </div>
+
+          <div className="match-highlights" aria-label="Match-Highlights">
+            {endGameStats.highlights.map((highlight) => (
+              <article key={highlight.key} className="match-highlight-card">
+                <p className="match-highlight-title">{highlight.title}</p>
+                <p className="match-highlight-value">{highlight.value}</p>
+                <p className="match-highlight-leaders">
+                  {highlight.leaders.map((leader) => leader.playerName).join(', ')}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          <div className="match-stats-table-wrap">
+            <table className="match-stats-table">
+              <thead>
+                <tr>
+                  <th>Spieler</th>
+                  <th>🏆</th>
+                  <th>Boss</th>
+                  <th>Abgaben</th>
+                  <th>Wechsel</th>
+                  <th>Serie</th>
+                </tr>
+              </thead>
+              <tbody>
+                {endGameStats.players.map((player) => (
+                  <tr key={player.playerId} className={player.playerId === myId ? 'is-me' : ''}>
+                    <td>{player.playerName}{player.playerId === myId ? ' (Du)' : ''}</td>
+                    <td>{player.trophies}</td>
+                    <td>{player.bossRounds}</td>
+                    <td>{player.submittedRounds}</td>
+                    <td>{player.swappedRounds}</td>
+                    <td>{player.longestWinStreak}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {roundRecap && roundRecap.length > 0 && (

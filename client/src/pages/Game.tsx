@@ -69,11 +69,11 @@ export default function Game() {
   if (gameState.phase === GamePhase.GAME_OVER) {
     return (
       <GameOver
-        players={gameState.players}
         winnerId={gameState.gameWinnerId}
         winnerName={gameState.gameWinnerName}
         myId={gameState.myId}
         isHost={me?.isHost || false}
+        endGameStats={gameState.endGameStats!}
         roundRecap={gameState.roundRecap}
         onRematch={rematch}
         onLeave={handleLeave}

@@ -1,5 +1,5 @@
 export const MIN_PLAYERS_TO_START = 3;
-export const MAX_PLAYERS = 8;
+export const MAX_PLAYERS = 10;
 export const HAND_SIZE = 8;
 export const TROPHY_TARGET_OPTIONS = [3, 5, 7, 10] as const;
 export const DEFAULT_MAX_TROPHIES = 5;
