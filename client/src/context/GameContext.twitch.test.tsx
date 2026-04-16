@@ -1,4 +1,4 @@
-import { act } from 'react';
+import { act, useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { GamePhase, type ClientGameState } from '../types';
@@ -97,14 +97,18 @@ function collectStorageKeys(): string[] {
 }
 
 function Probe() {
-  latestContext = useGame();
+  const context = useGame();
+
+  useEffect(() => {
+    latestContext = context;
+  }, [context]);
 
   return (
     <>
-      <div data-testid="status">{latestContext.gameState?.communityVoting.connection.status ?? 'none'}</div>
-      <div data-testid="ack">{String(latestContext.gameState?.communityVoting.privacyWarningAcknowledgedForSession ?? false)}</div>
-      <div data-testid="enabled">{String(latestContext.gameState?.communityVoting.enabled ?? false)}</div>
-      <div data-testid="error">{latestContext.error ?? ''}</div>
+      <div data-testid="status">{context.gameState?.communityVoting.connection.status ?? 'none'}</div>
+      <div data-testid="ack">{String(context.gameState?.communityVoting.privacyWarningAcknowledgedForSession ?? false)}</div>
+      <div data-testid="enabled">{String(context.gameState?.communityVoting.enabled ?? false)}</div>
+      <div data-testid="error">{context.error ?? ''}</div>
     </>
   );
 }

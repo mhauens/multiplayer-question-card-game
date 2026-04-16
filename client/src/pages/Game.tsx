@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
+import { getRemainingSeconds, useCurrentTime } from '../hooks/useCurrentTime';
 import { GamePhase } from '../types';
 import QuestionCard from '../components/QuestionCard';
 import PlayerHand from '../components/PlayerHand';
@@ -14,7 +15,6 @@ import '../styles/game.css';
 
 export default function Game() {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
-  const [now, setNow] = useState(Date.now());
   const navigate = useNavigate();
   const {
     gameState,
@@ -27,26 +27,10 @@ export default function Game() {
     rematch,
     leaveGame,
   } = useGame();
-
-  useEffect(() => {
-    setNow(Date.now());
-
-    if (gameState?.phase === GamePhase.GAME_OVER) {
-      return;
-    }
-
-    if (!gameState?.phaseDeadline && !gameState?.reconnectWindow?.deadline) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [gameState?.phase, gameState?.phaseDeadline, gameState?.reconnectWindow?.deadline]);
+  const currentTime = useCurrentTime(
+    Boolean(gameState?.phaseDeadline || gameState?.reconnectWindow?.deadline)
+      && gameState?.phase !== GamePhase.GAME_OVER,
+  );
 
   if (!gameState) return null;
 
@@ -91,7 +75,7 @@ export default function Game() {
   const scoreboardRoundWinnerId = isRoundEnd ? gameState.winnerId : gameState.lastRoundWinnerId;
   const activeDeadline = gameState.reconnectWindow?.deadline || gameState.phaseDeadline;
   const remainingSeconds = activeDeadline
-    ? Math.max(0, Math.ceil((activeDeadline - now) / 1000))
+    ? getRemainingSeconds(activeDeadline, currentTime)
     : null;
 
   const phaseLabel = () => {
@@ -164,6 +148,7 @@ export default function Game() {
             gameState.phase === GamePhase.JUDGING ||
             gameState.phase === GamePhase.ROUND_END) && (
             <SubmittedAnswers
+              key={`${gameState.currentRound}-${gameState.phase}`}
               submissions={gameState.submissions}
               isBoss={isBoss}
               phase={gameState.phase}

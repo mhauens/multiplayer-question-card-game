@@ -37,7 +37,7 @@ function scheduleDisconnect() {
 
 export function useSocket() {
   const socketRef = useRef<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(() => Boolean(sharedSocket?.connected));
 
   useEffect(() => {
     if (disconnectTimer) {
@@ -49,10 +49,6 @@ export function useSocket() {
     activeConsumers += 1;
 
     socketRef.current = socket;
-
-    if (socket.connected) {
-      setIsConnected(true);
-    }
 
     const handleConnect = () => {
       setIsConnected(true);
@@ -108,5 +104,5 @@ export function useSocket() {
     };
   }, []);
 
-  return { socket: socketRef.current, isConnected, emit, on };
+  return { isConnected, emit, on };
 }

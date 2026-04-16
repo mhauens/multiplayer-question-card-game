@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { getRemainingSeconds, useCurrentTime } from '../hooks/useCurrentTime';
 
 interface ReconnectOverlayProps {
   playerNames: string[];
@@ -8,21 +8,8 @@ interface ReconnectOverlayProps {
 }
 
 export default function ReconnectOverlay({ playerNames, deadline, title, body }: ReconnectOverlayProps) {
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    setNow(Date.now());
-
-    const timer = window.setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [deadline]);
-
-  const remainingSeconds = Math.max(0, Math.ceil((deadline - now) / 1000));
+  const currentTime = useCurrentTime();
+  const remainingSeconds = getRemainingSeconds(deadline, currentTime);
   const reconnectLabel = playerNames.length === 1
     ? playerNames[0]
     : playerNames.join(', ');
