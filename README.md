@@ -244,7 +244,7 @@ Empfohlene Validierung fuer Twitch-Community-Voting:
 ## Wichtige Spielregeln in der Online-Variante
 
 - Der Host erstellt die Lobby und startet das Spiel.
-- Start ist erst ab 3 Spielern moeglich.
+- Start ist erst ab 3 Spielern moeglich, und in einer Lobby koennen bis zu 10 Personen mitspielen.
 - Jede Person startet mit 8 Antwortkarten.
 - Nur Nicht-Bosse reichen Antworten ein.
 - Wer Karten tauscht, setzt die aktuelle Runde aus.
@@ -256,7 +256,7 @@ Empfohlene Validierung fuer Twitch-Community-Voting:
 
 Aktueller Stand der Basisdaten:
 
-- Basisfragen: 80
+- Basisfragen: 91
 - Basisantworten: 160
 - Variante `peppa-wutz`: 31 Fragen, 125 Antworten
 - Erweiterung `alltagschaos`: 20 Fragen, 40 Antworten

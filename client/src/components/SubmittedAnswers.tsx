@@ -90,7 +90,9 @@ export default function SubmittedAnswers({
                       </span>
                     </div>
                   )}
-                <div className="submission-cards">
+                <div
+                  className={`submission-cards ${sub.cards.length > 1 ? 'has-multiple-answers' : ''}`}
+                >
                   {sub.cards.map((card, ci) => (
                     <div key={ci} className="submission-answer-text">
                       {card.text}

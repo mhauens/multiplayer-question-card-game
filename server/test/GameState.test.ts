@@ -185,6 +185,38 @@ describe('GameState', () => {
     expect(gameOverState.gameWinnerName).toBe('Anna');
   });
 
+  it('keeps the frozen game-over snapshot stable after a player leaves', () => {
+    const game = createGame();
+    game.players[0].trophies = 2;
+    game.players[1].trophies = 1;
+    game.players[2].trophies = 0;
+
+    const state = createState(game);
+    state.startGame();
+
+    const secondPlayerCard = state.getPlayer('p2')?.hand[0];
+    const thirdPlayerCard = state.getPlayer('p3')?.hand[0];
+
+    state.submitAnswer('p2', [secondPlayerCard!]);
+    state.submitAnswer('p3', [thirdPlayerCard!]);
+    state.revealAllSubmissions();
+    state.pickWinner('p2');
+    state.nextRound();
+
+    const beforeLeave = state.getClientState('p2');
+    expect(beforeLeave.phase).toBe(GamePhase.GAME_OVER);
+    expect(beforeLeave.gameWinnerId).toBe('p1');
+    expect(beforeLeave.endGameStats?.players.map((player) => player.playerId)).toEqual(['p1', 'p2', 'p3']);
+
+    state.removePlayer('p1');
+
+    const afterLeave = state.getClientState('p2');
+    expect(afterLeave.players.map((player) => player.id)).toEqual(['p2', 'p3']);
+    expect(afterLeave.gameWinnerId).toBe('p1');
+    expect(afterLeave.gameWinnerName).toBe('Anna');
+    expect(afterLeave.endGameStats?.players.map((player) => player.playerId)).toEqual(['p1', 'p2', 'p3']);
+  });
+
   it('keeps the chosen winner visible after that player leaves during round end', () => {
     const state = createState();
     state.startGame();

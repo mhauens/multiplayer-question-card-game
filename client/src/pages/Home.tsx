@@ -12,7 +12,7 @@ const fallbackVariants: CardCatalogOption[] = [
     id: 'base',
     title: 'Basic',
     description: 'Der klassische Kartensatz mit dem normalen Spiessertum-Humor.',
-    questionCount: 80,
+    questionCount: 91,
     answerCount: 160,
     extensions: [],
   },

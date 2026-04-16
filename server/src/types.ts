@@ -193,6 +193,30 @@ export interface ClientCommunityVotingState {
   context: ClientCommunityVotingContext | null;
 }
 
+export interface ClientPlayerEndGameStats {
+  playerId: string;
+  playerName: string;
+  trophies: number;
+  bossRounds: number;
+  submittedRounds: number;
+  swappedRounds: number;
+  currentWinStreak: number;
+  longestWinStreak: number;
+}
+
+export interface ClientEndGameHighlight {
+  key: 'longest-win-streak' | 'most-boss-rounds' | 'most-submitted-rounds' | 'most-swapped-rounds';
+  title: string;
+  value: number;
+  leaders: ClientPlayerEndGameStats[];
+}
+
+export interface ClientEndGameStats {
+  totalRounds: number;
+  players: ClientPlayerEndGameStats[];
+  highlights: ClientEndGameHighlight[];
+}
+
 // Client-facing state (sanitized - no other player hands)
 export interface ClientGameState {
   code: string;
@@ -217,6 +241,7 @@ export interface ClientGameState {
   gameWinnerName: string | null;
   hasPassword: boolean;
   roundRecap: RoundRecapEntry[] | null;
+  endGameStats: ClientEndGameStats | null;
   communityVoting: ClientCommunityVotingState;
 }
 
